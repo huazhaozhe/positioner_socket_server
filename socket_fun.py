@@ -5,6 +5,7 @@
 # @FileName : socket_fun.py
 # @Project  : PyCharm
 
+import time
 import socket
 
 def get_host_ip():
@@ -17,3 +18,16 @@ def get_host_ip():
     finally:
         s.close()
     return ip
+
+
+def tcplink(sock, addr):
+    print('新的客户端连接: %s:%s...' % addr)
+    sock.send(('%s:%s OK' %addr).encode())
+    while True:
+        data = sock.recv(10240)
+        send_msg = data.decode() + '\n%s' % time.strftime('%Y-%m-%d %H:%M:%S')
+        sock.send(send_msg.encode())
+        if not data or data == 'exit':
+            break
+    sock.close()
+    print('客户端 %s:%s 连接断开' % addr)

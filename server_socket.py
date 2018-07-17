@@ -7,8 +7,9 @@
 
 
 import os, sys, time
+import threading
 import socket
-from socket_fun import get_host_ip
+from socket_fun import get_host_ip, tcplink
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -19,11 +20,8 @@ server_socket.bind((host, port))
 server_socket.listen(5)
 print('server_socket run at %s:%s' % (host, port))
 
+
 while True:
     client_socket, addr = server_socket.accept()
-    print('客户端连接地址: %s' % str(addr))
-    msg = 'IP %s 已连接服务端' % str(addr)
-    client_socket.send(msg.encode())
-    client_socket.close()
-    time.sleep(0.5)
-
+    t = threading.Thread(target=tcplink, args=(client_socket, addr))
+    t.start()

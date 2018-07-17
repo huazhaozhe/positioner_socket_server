@@ -14,7 +14,15 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = get_host_ip()
 port = 10086
 client_socket.connect((host, port))
+accept = client_socket.recv(10240)
+print(accept.decode())
 
-msg = client_socket.recv(1024)
+while True:
+    send_msg = input('输入发送的信息:')
+    client_socket.send(send_msg.encode())
+    print(client_socket.recv(10240).decode())
+    if send_msg == 'exit':
+        break
+
 client_socket.close()
-print(msg.decode())
+print('客户端关闭连接')
