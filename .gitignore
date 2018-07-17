@@ -204,3 +204,4 @@ $RECYCLE.BIN/
 # Visio autosave temporary files
 *.~vsd*
 
+config.py
