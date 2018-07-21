@@ -6,19 +6,17 @@
 # @Project  : PyCharm
 
 import socket
-import sys
-from socket_fun import get_host_ip
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-host = get_host_ip()
+host = '192.168.16.70'
 port = 10086
 client_socket.connect((host, port))
 accept = client_socket.recv(10240)
 print(accept.decode())
 
 while True:
-    send_msg = input('输入发送的信息:')
+    send_msg = input('输入发送的信息, 输入exit退出:')
     client_socket.send(send_msg.encode())
     print(client_socket.recv(10240).decode())
     if send_msg == 'exit':

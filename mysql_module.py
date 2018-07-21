@@ -8,7 +8,7 @@
 import pymysql
 from config import mysql_conf
 
-db = pymysql.connect(mysql_conf['ip'], mysql_conf['user'], mysql_conf['password'], mysql_conf['database'])
+db = pymysql.connect(mysql_conf['host'], mysql_conf['user'], mysql_conf['password'], mysql_conf['database'])
 cursor = db.cursor()
 sql = """CREATE TABLE EMPLOYEE (
          FIRST_NAME  CHAR(20) NOT NULL,
