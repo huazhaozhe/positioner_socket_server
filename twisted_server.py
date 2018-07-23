@@ -7,20 +7,25 @@
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory
-from communication_protocol import Handler
-
-client = []
+from communication_protocol import Handler, login_client
 
 handler = Handler()
+client = []
 
 
 class MyProtocal(Protocol):
     def connectionMade(self):
         self.transport.write(('欢迎客户端 %s:%s' % self.transport.client).encode())
+        client.append(self)
         print('来自%s:%s的客户端已连接' % self.transport.client)
 
     def connectionLost(self, reason):
-        print('客户端%s:%s已断开' % self.transport.client)
+        if self in login_client:
+            print('已经登录的客户端 %s:%s已断开' % self.transport.client)
+            login_client.remove(self)
+        else:
+            print('未登录的客户端%s:%s已断开' % self.transport.client)
+            client.remove(self)
 
     def dataReceived(self, data):
         print('收到原始字符：', data)

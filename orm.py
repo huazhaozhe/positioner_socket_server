@@ -52,11 +52,23 @@ class EmployeeInfoCard(Base):
 
 
 hisdata = Table('hisdata', metadata,
+                Column('id', Integer, primary_key=True),
                 Column('dev_id', String(20), nullable=True),
                 Column('name', String(20), nullable=True),
                 Column('time', String(25), nullable=True),
                 Column('lng', String(50), nullable=True),
                 Column('lat', String(50), nullable=True))
+
+class HisData(Base):
+    __tablename__ = 'hisdata'
+
+    id = Column(Integer, primary_key=True)
+    dev_id = Column(String(20))
+    name = Column(String(20))
+    time = Column(String(25))
+    lng = Column(String(50))
+    lat = Column(String(50))
+
 
 location_card = Table('location_card', metadata,
                       Column('dev_id', String(25), primary_key=True,

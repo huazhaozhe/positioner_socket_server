@@ -11,14 +11,20 @@ from orm import *
 startwith = (0x78, 0x78)
 endwith = (0x0d, 0x0a)
 
-client = []
+login_client = []
 session = DBSession()
 
 
 class BaseCase():
-    def __init__(self, startwith, endwith):
+
+    def __init__(self, number, length, startwith=startwith, endwith=endwith):
         self.startwith = startwith
         self.endwith = endwith
+        self.number = number
+        self.length = length
+        self.error = {
+            'protocol': False,
+        }
 
     def pretreatment(self, data_list):
         try:
@@ -30,48 +36,44 @@ class BaseCase():
             return False
         return True
 
-
-class LoginCase(BaseCase):
-
-    def __init__(self, number, length):
-        super(LoginCase, self).__init__(startwith, endwith)
-        self.number = number
-        self.length = length
-        self.error = {
-            'protocol': False,
-        }
-
     def test(self, data):
-        self.data_list = list(data)
+        # self.data_list = list(data)
+        self.data_list = tuple(data)
         print('data_list', self.data_list)
         if not self.pretreatment(self.data_list):
             print('预处理失败')
             return False
         if self.data_list[3] != self.number:
-            print('不是这个操作')
             return self.error['protocol']
         return True
 
-    def login_success(self, dev_str):
-        send_msg = chr(self.startwith[0]) + chr(self.startwith[1]) + chr(
-            0x01) + chr(self.endwith[0]) + chr(self.endwith[1])
-        print('%s 登录成功' % dev_str)
-        self.transport.transport.write(send_msg.encode())
+    def act(self, transport):
+        pass
+
+
+class LoginCase(BaseCase):
+
+    def login_success(self, dev, transport):
+        send_msg = ''.join(map(chr, self.startwith)) + chr(
+            0x01) + chr(0x01) + ''.join(map(chr, self.endwith))
+        print('%s 登录成功' % dev.dev_id)
+        transport.transport.write(send_msg.encode())
         dev_info = {
-            'id': dev_str,
+            'dev_id': dev.dev_id,
+            'name': dev.name,
             'login_status': 1,
             'login_time': time.strftime('%Y-%m-%d %H:%M:%S')
         }
-        self.transport.dev_info = dev_info
-        client.append(self.transport)
+        transport.dev_info = dev_info
+        login_client.append(transport)
         return True
 
-    def login_failure(self, dev_str):
+    def login_failure(self, dev_str, transport):
         print('%s 登录失败' % dev_str)
-        send_msg = chr(self.startwith[0]) + chr(self.startwith[1]) + chr(
-            0x44) + chr(self.endwith[0]) + chr(self.endwith[1])
-        self.transport.transport.write(send_msg.encode())
-        self.transport.transport.loseConnection()
+        send_msg = ''.join(map(chr, self.startwith)) + chr(0x01) + chr(
+            0x44) + ''.join(map(chr, self.endwith))
+        transport.transport.write(send_msg.encode())
+        transport.transport.loseConnection()
         return True
 
     def check_dev(self):
@@ -83,29 +85,85 @@ class LoginCase(BaseCase):
         if len(dev) > 1:
             raise
         elif len(dev) == 1 and dev[0].dev_id == dev_str:
-            return (True, dev_str)
+            return (True, dev[0])
         else:
             return (False, dev_str)
 
     def act(self, transport):
-        self.transport = transport
-        dev = self.check_dev()
-        if dev[0]:
-            self.login_success(dev[1])
+        dev_checked = self.check_dev()
+        if dev_checked[0]:
+            self.login_success(dev_checked[1], transport)
         else:
-            self.login_failure(dev[1])
+            self.login_failure(dev_checked[1], transport)
+
+
+class HeartBeat(BaseCase):
+
+    def act(self, transport):
+        print('收到设备 %s 心跳包' % transport.dev_info['id'])
+
+
+class GpsPositioning(BaseCase):
+
+    def act(self, transport):
+        gps_date = self.gps_date_time(self.data_list[4:4 + 6])
+        gps_longitude = self.hexadecimal_to_sexagesimal(
+            self.data_list[11:11 + 4])
+        gps_latitude = self.hexadecimal_to_sexagesimal(
+            self.data_list[11 + 4:11 + 8])
+        hisdata = {
+            'dev_id': transport.dev_info['dev_id'],
+            'name': transport.dev_info['name'],
+            'time': gps_date,
+            'lng': gps_longitude,
+            'lat': gps_latitude
+        }
+        self.write_to_hisdata(hisdata)
+
+    def hexadecimal_to_sexagesimal(self, value):
+        value_hex = ''.join(map(lambda x: hex(x)[2:], value))
+        value = int(value_hex, 16)
+        return str(value / 30000 / 60)
+
+    def gps_date_time(self, date_time):
+        date_time = list(map(str, date_time))
+        return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+
+    def write_to_hisdata(self, data):
+        hisdata = HisData(
+            dev_id=data['dev_id'],
+            name=data['name'],
+            time=data['time'],
+            lng=data['lng'],
+            lat=data['lat']
+        )
+        session.add(hisdata)
+        session.commit()
+
+    def server_response(self, transport):
+        send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
+            self.number) + ''.join(
+            map(chr, self.data_list[4:4 + 6])) + ''.join(
+            map(chr, self.endwith))
+        transport.transport.write(send_msg.encode())
+        return True
 
 
 class Handler():
     logincase = LoginCase(number=0x01, length=0x0a)
-    Case = []
+    Case = [
+        HeartBeat(number=0x08, length=0x01),
+        GpsPositioning(number=0x10, length=0x12),
+    ]
 
     def handler(self, data, transport):
-        if transport in client:
+        if transport in login_client:
             for case in self.Case:
                 if case.test(data):
                     case.act(transport)
                     break
+        elif self.logincase.test(data):
+            self.logincase.act(transport)
         else:
-            if self.logincase.test(data):
-                self.logincase.act(transport)
+            # transport.transport.loseConnection()
+            transport.transport.abortConnection()
