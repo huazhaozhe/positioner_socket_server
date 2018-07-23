@@ -119,6 +119,7 @@ class GpsPositioning(BaseCase):
             'lat': gps_latitude
         }
         self.write_to_hisdata(hisdata)
+        self.server_response(transport)
 
     def hexadecimal_to_sexagesimal(self, value):
         value_hex = ''.join(map(lambda x: hex(x)[2:], value))
