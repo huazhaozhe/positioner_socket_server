@@ -8,7 +8,6 @@
 
 import time
 import socket
-from orm import Message
 
 
 def get_host_ip():
@@ -50,7 +49,6 @@ def tcplink(sock, addr, db_session):
         db_session.add(new_msg)
         db_session.commit()
         sock.send('accept'.encode())
-
 
     sock.close()
     print('客户端 %s:%s 连接断开' % addr)

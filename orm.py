@@ -25,18 +25,50 @@ def time_now():
     return time.strftime('%Y-%m-%d %H:%M:%S')
 
 
-class Message(Base):
-    __tablename__ = 'message'
+employeeinfo_card = Table('employeeinfo_card', metadata,
+                          Column('dev_id', String(20), nullable=False,
+                                 primary_key=True),
+                          Column('name', String(20), nullable=True),
+                          Column('TEL', String(20), nullable=True),
+                          Column('ICCID', String(22), nullable=True),
+                          Column('work_place', String(300), nullable=True),
+                          Column('area', String(20), nullable=True),
+                          Column('worktime', String(20), nullable=True),
+                          Column('work_area_detailed', String(30),
+                                 nullable=True))
 
-    id = Column(Integer, primary_key=True)
-    message = Column(String(100))
-    created_at = Column(String(50), default=time_now)
+
+class EmployeeInfoCard(Base):
+    __tablename__ = 'employeeinfo_card'
+
+    dev_id = Column(String(20), primary_key=True)
+    name = Column(String(20), default='zhe')
+    TEL = Column(String(20))
+    ICCID = Column(String(22))
+    work_place = Column(String(300))
+    area = Column(String(20), default='bc')
+    worktime = Column(String(20))
+    work_area_detailed = Column(String(30))
 
 
-msg = Table('message', metadata,
-            Column('id', Integer, primary_key=True),
-            Column('message', String(100)),
-            Column('created_at', String(50), default=time_now))
+hisdata = Table('hisdata', metadata,
+                Column('dev_id', String(20), nullable=True),
+                Column('name', String(20), nullable=True),
+                Column('time', String(25), nullable=True),
+                Column('lng', String(50), nullable=True),
+                Column('lat', String(50), nullable=True))
+
+location_card = Table('location_card', metadata,
+                      Column('dev_id', String(25), primary_key=True,
+                             nullable=False),
+                      Column('name', String(30), nullable=True),
+                      Column('time', String(30), nullable=True),
+                      Column('lng', String(50), nullable=True),
+                      Column('lat', String(50), nullable=True),
+                      Column('area', String(30), nullable=True),
+                      Column('connect', Integer(), nullable=True),
+                      Column('battery', Integer(), nullable=True),
+                      Column('link', String(5), nullable=True))
 
 DBSession = sessionmaker(bind=engine)
 metadata.create_all(engine)
