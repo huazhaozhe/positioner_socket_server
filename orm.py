@@ -82,5 +82,18 @@ location_card = Table('location_card', metadata,
                       Column('battery', Integer(), nullable=True),
                       Column('link', String(5), nullable=True))
 
+class LocationCard(Base):
+    __tablename__ = 'location_card'
+
+    dev_id = Column(String(25), primary_key=True)
+    name = Column(String(30))
+    time = Column(String(30))
+    lng = Column(String(50))
+    lat = Column(String(50))
+    area = Column(String(30))
+    connect = Column(Integer)
+    battery = Column(Integer)
+    link = Column(String(5))
+
 DBSession = sessionmaker(bind=engine)
 metadata.create_all(engine)

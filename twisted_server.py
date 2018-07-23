@@ -15,7 +15,7 @@ client = []
 
 class MyProtocal(Protocol):
     def connectionMade(self):
-        self.transport.write(('欢迎客户端 %s:%s' % self.transport.client).encode())
+        # self.transport.write(('欢迎客户端 %s:%s' % self.transport.client).encode())
         client.append(self)
         print('来自%s:%s的客户端已连接' % self.transport.client)
 
@@ -23,14 +23,12 @@ class MyProtocal(Protocol):
         if self in login_client:
             print('已经登录的客户端 %s:%s已断开' % self.transport.client)
             login_client.remove(self)
-        else:
+        elif self in client:
             print('未登录的客户端%s:%s已断开' % self.transport.client)
             client.remove(self)
 
     def dataReceived(self, data):
         print('收到原始字符：', data)
-        print(data[3], type(data[3]))
-        print(data[1:4], type(data[1:4]))
         handler.handler(data, self)
 
 
