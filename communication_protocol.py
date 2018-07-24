@@ -17,6 +17,23 @@ login_client = []
 session = DBSession()
 
 
+def bytes_to_dec(value):
+    '''
+    :param value:数组或者元组,不能是字符串
+    :return: 十进制整数
+    如将[0xee, 0xff, 0x05, 0x12],也就是[238, 255, 5, 18]
+    转换为0xeeff0512的十进制4009690386
+    每个元素对应一个字节,每个元素最大0xff
+    '''
+    value_str = ''.join(
+        map(
+            lambda x: hex(x)[2:]
+            if len(hex(x)[2:]) == 2 else '0' + hex(x)[2:], value
+        )
+    )
+    return int(value_str, 16)
+
+
 class BaseCase():
 
     def __init__(self, number, length, startwith=startwith, endwith=endwith):
@@ -28,26 +45,24 @@ class BaseCase():
             'protocol': False,
         }
 
-    def pretreatment(self, data_list):
+    def pretreatment(self, data):
         try:
-            if (data_list[0], data_list[1]) != self.startwith:
+            if (data[0], data[1]) != self.startwith:
                 return False
-            if (data_list[-2], data_list[-1]) != self.endwith:
+            if (data[-2], data[-1]) != self.endwith:
                 return False
         except:
             return False
         return True
 
     def test(self, data):
-        # self.data_list = list(data)
         try:
-            self.data_list = tuple(data)
-            print('data_list', self.data_list)
-            if not self.pretreatment(self.data_list):
+            if not self.pretreatment(data):
                 print('预处理失败')
                 return False
-            if self.data_list[3] != self.number:
+            if data[3] != self.number:
                 return self.error['protocol']
+            self.data_list = data
             return True
         except:
             return False
@@ -85,11 +100,12 @@ class LoginCase(BaseCase):
     def check_dev(self):
         dev_str = ''
         for i in self.data_list[4:4 + 8]:
-            dev_str += hex(i)[2:] if len(hex(i)[2:]) == 2 else '0' + hex(i)[2:]
+            dev_str += hex(i)[2:] if len(hex(i)[2:]) > 1 else '0' + hex(i)[2:]
         dev = session.query(EmployeeInfoCard).filter(
             EmployeeInfoCard.dev_id == dev_str).all()
         if len(dev) > 1:
-            raise
+            pass
+            # raise
         elif len(dev) == 1 and dev[0].dev_id == dev_str:
             return (True, dev[0])
         else:
@@ -117,26 +133,26 @@ class GpsPositioning(BaseCase):
             self.data_list[11:11 + 4])
         gps_latitude = self.hexadecimal_to_sexagesimal(
             self.data_list[11 + 4:11 + 8])
-        hisdata = {
+        data = {
             'dev_id': transport.dev_info['dev_id'],
             'name': transport.dev_info['name'],
             'time': gps_date,
             'lng': gps_longitude,
             'lat': gps_latitude
         }
-        self.write_to_hisdata(hisdata)
+        self.update_to_location(data)
+        self.insert_to_hisdata(data)
         self.server_response(transport)
 
     def hexadecimal_to_sexagesimal(self, value):
-        value_hex = ''.join(map(lambda x: hex(x)[2:], value))
-        value = int(value_hex, 16)
+        value = bytes_to_dec(value)
         return str(value / 30000 / 60)
 
     def gps_date_time(self, date_time):
         date_time = list(map(str, date_time))
         return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
 
-    def write_to_hisdata(self, data):
+    def insert_to_hisdata(self, data):
         hisdata = HisData(
             dev_id=data['dev_id'],
             name=data['name'],
@@ -146,6 +162,22 @@ class GpsPositioning(BaseCase):
         )
         session.add(hisdata)
         session.commit()
+
+    def update_to_location(self, data):
+        location = session.query(LocationCard).filter_by(
+            dev_id=data['dev_id']).all()
+        if len(location) > 1:
+            pass
+            # raise ValueError
+        elif len(location) == 1:
+            location = location[0]
+            location.time = data['time']
+            location.lng = data['lng']
+            location.lat = data['lat']
+            session.commit()
+        else:
+            pass
+            # raise ValueError
 
     def server_response(self, transport):
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
@@ -159,13 +191,25 @@ class GpsPositioning(BaseCase):
 class DeviceStatus(BaseCase):
 
     def act(self, transport):
-        battery = self.data_list[4]
-        self.update_to_location(transport.dev_info['time'], battery)
+        data = {
+            'dev_id': transport.dev_info['dev_id'],
+            'battery': self.data_list[4],
+        }
+        self.update_to_location(data)
 
-    def update_to_location(self, time, battery):
-        location_card = LocationCard(time=time, battery=battery)
-        session.add(location_card)
-        session.commit()
+    def update_to_location(self, data):
+        location = session.query(LocationCard).filter_by(
+            dev_id=data['dev_id']).all()
+        if len(location) > 1:
+            pass
+            # raise ValueError
+        elif len(location) == 1:
+            location = location[0]
+            location.battery = data['battery']
+            session.commit()
+        else:
+            pass
+            # raise ValueError
 
     def set_heart_beat(self, transport, interval=0x03):
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x02) + chr(
@@ -191,9 +235,12 @@ class DeviceTimeUpdate(BaseCase):
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
         print(time_list)
-        time_str = ''.join(map(
-            lambda x: hex(x)[2:] if len(hex(x)[2:]) > 1 else '0' + hex(x)[2:],
-            time_list))
+        time_str = ''.join(
+            map(
+                lambda x: hex(x)[2:]
+                if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
+            )
+        )
         print(time_str)
         self.set_time(transport, time_str)
 
@@ -201,6 +248,110 @@ class DeviceTimeUpdate(BaseCase):
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x07) + chr(
             self.number) + time_str + ''.join(map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
+
+
+class WifiPositioning(BaseCase):
+
+    def __init__(self, number, startwith=startwith, endwith=endwith):
+        self.startwith = startwith
+        self.endwith = endwith
+        self.number = number
+        self.error = {
+            'protocol': False,
+        }
+
+    def act(self, transport):
+        dev_id = transport.dev_info['dev_id']
+        date_time = self.wifi_date_time(self.data_list[4:4 + 6])
+        data = {
+            'dev_id': transport.dev_info['dev_id'],
+            'name': transport.dev_info['name'],
+            'lng': None,
+            'lat': None,
+            'time': date_time
+        }
+        if self.data_list[2] > 0:
+            mac_dict = self.get_wifi_mac(dev_id, date_time)
+            transport.dev_info['mac_dict'] = mac_dict
+            data['lng'] = 'wifi#' + mac_dict['bssid']
+        lbs_offset = 10 + self.data_list[2] * 7
+        lbs_num = self.data_list[lbs_offset]
+        if lbs_num > 0:
+            lbs_dict = self.get_lbs(dev_id, date_time, lbs_num, lbs_offset)
+            transport.dev_info['lbs_dict'] = lbs_dict
+            data['lat'] = '#'.join(map(str,
+                                       ['lbs', lbs_dict['mcc'],
+                                        lbs_dict['mnc'], lbs_dict['lac'],
+                                        lbs_dict['cellid']]))
+        self.insert_to_hosdata(data)
+        self.update_to_location(data)
+        self.server_response(transport)
+
+    def get_wifi_mac(self, dev_id, date_time):
+        mac_dict = {
+            'dev_id': dev_id,
+            'mac_num': self.data_list[2],
+            'bssid': ':'.join(
+                map(lambda x: hex(x)[2:], self.data_list[10:16])),
+            'rssi': self.data_list[16],
+            'time': date_time,
+        }
+        return mac_dict
+
+    def get_lbs(self, dev_id, date_time, lbs_num, lbs_offset):
+        lbs_dict = {
+            'dev_id': dev_id,
+            'lbs_num': lbs_num,
+            'mcc': bytes_to_dec(self.data_list[lbs_offset + 1:lbs_offset + 3]),
+            'mnc': self.data_list[lbs_offset + 3],
+            'lac': bytes_to_dec(self.data_list[lbs_offset + 4:lbs_offset + 6]),
+            'cellid': bytes_to_dec(
+                self.data_list[lbs_offset + 6:lbs_offset + 8]),
+            'mciss': self.data_list[lbs_offset + 8],
+            'time': date_time,
+        }
+        return lbs_dict
+
+    def update_to_location(self, data):
+        location = session.query(LocationCard).filter_by(
+            dev_id=data['dev_id']).all()
+        if len(location) > 1:
+            pass
+            # raise ValueError
+        elif len(location) == 1:
+            location = location[0]
+            location.time = data['time']
+            if data['lng']:
+                location.lng = data['lng']
+            if data['lat']:
+                location.lat = data['lat']
+            session.commit()
+        else:
+            pass
+            # raise ValueError
+
+    def insert_to_hosdata(self, data):
+        hisdata = HisData(
+            dev_id=data['dev_id'],
+            name=data['name'],
+            time=data['time'],
+            lng=data['lng'],
+            lat=data['lat']
+        )
+        session.add(hisdata)
+        session.commit()
+
+    def wifi_date_time(self, date_time):
+        date_time = list(map(str, date_time))
+        return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+
+    def server_response(self, transport):
+        send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
+            self.number) + ''.join(
+            map(chr, self.data_list[4:4 + 6])) + ''.join(
+            map(chr, self.endwith))
+        transport.transport.write(send_msg.encode())
+        return True
 
 
 class Handler():
@@ -211,9 +362,11 @@ class Handler():
         DeviceStatus(number=0x13, length=0x06),
         FactoryReset(number=0x15, length=0x01),
         DeviceTimeUpdate(number=0x30, length=0x01),
+        WifiPositioning(number=0x69),
     ]
 
     def handler(self, data, transport):
+        data_tuple = tuple(data)
         if DEBUG and transport not in login_client:
             dev = session.query(EmployeeInfoCard).filter(
                 EmployeeInfoCard.dev_id == '0123456789012345').one()
@@ -222,11 +375,14 @@ class Handler():
         if transport in login_client:
             transport.dev_info['last_time'] = time.strftime(
                 '%Y-%m-%d %H:%M:%S')
+            print('在 %s 收到设备的消息: %s\n字符串: %s\n元组: %s\n' % (
+                transport.dev_info['last_time'],
+                transport.dev_info['dev_id'], data, data_tuple))
             for case in self.Case:
-                if case.test(data):
+                if case.test(data_tuple):
                     case.act(transport)
                     break
-        elif self.logincase.test(data):
+        elif self.logincase.test(data_tuple):
             self.logincase.act(transport)
         else:
             transport.transport.loseConnection()

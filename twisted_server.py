@@ -28,7 +28,6 @@ class MyProtocal(Protocol):
             client.remove(self)
 
     def dataReceived(self, data):
-        print('收到原始字符：', data)
         handler.handler(data, self)
 
 
