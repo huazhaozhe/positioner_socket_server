@@ -85,7 +85,7 @@ class ToSendCase(BaseCase):
     def send_to_device(self, transport, id):
         try:
             transport.transport.write(bytes().fromhex(self.data))
-            msg = session.query(ToSendModel).filter(id==id).all()
+            msg = session.query(ToSendModel).filter(ToSendModel.id == id).all()
             if len(msg) > 1:
                 return False
             elif len(msg) == 1:

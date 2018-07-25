@@ -8,7 +8,8 @@
 
 from case import *
 
-DEBUG = True
+# DEBUG = True
+DEBUG = False
 
 startwith = (0x78, 0x78)
 endwith = (0x0d, 0x0a)
@@ -64,9 +65,10 @@ class Handler():
         elif self.login_case.test(data_tuple, data):
             if self.login_case.act(transport):
                 self.login_client.append(transport)
-                if self.to_send_enable and transport.dev_info[
-                    'dev_id'] in self.msg_dict:
-                    self.to_send_device(transport)
+                if self.to_send_enable:
+                    self.to_send_init()
+                    if transport.dev_info['dev_id'] in self.msg_dict:
+                        self.to_send_device(transport)
                 return True
         elif DEBUG and transport not in self.login_client:
             dev = session.query(EmployeeInfoCard).filter(
@@ -105,3 +107,24 @@ class Handler():
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
         print('新的msg_dict', self.msg_dict)
+
+    def add_msg(self, msg_list):
+        try:
+            dev_id_list = []
+            dev_all = session.query(EmployeeInfoCard).all()
+            for dev in dev_all:
+                dev_id_list.append(dev.dev_id)
+            print(dev_id_list)
+            id_list = []
+            if msg_list[0] == 'all':
+                id_list = dev_id_list
+            else:
+                id_list = msg_list[0]
+            for id in id_list:
+                for msg in msg_list[1]:
+                    new_msg = ToSendModel(dev_id=id, msg=msg,
+                                          created_at=datetime.now(), status=0)
+                    session.add(new_msg)
+            session.commit()
+        except:
+            print('添加发生错误')
