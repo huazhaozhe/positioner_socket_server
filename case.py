@@ -245,3 +245,8 @@ class WifiPositioning(BaseCase):
             map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
         return True
+
+
+class RebootDevice(ToSendCase):
+
+    pass

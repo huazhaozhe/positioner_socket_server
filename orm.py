@@ -7,8 +7,9 @@
 
 
 import time
+from datetime import datetime
 from sqlalchemy import String, Column, create_engine, Float, Integer, MetaData, \
-    Table
+    Table, DateTime
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from config import mysql_conf
@@ -94,6 +95,26 @@ class LocationCard(Base):
     connect = Column(Integer)
     battery = Column(Integer)
     link = Column(String(5))
+
+
+to_send_device = Table('to_send_device', metadata,
+                       Column('id', Integer, primary_key=True),
+                       Column('dev_id', String(25), nullable=False),
+                       Column('msg', String(300), nullable=False),
+                       Column('status', Integer, default=0, nullable=False),
+                       Column('created_at', DateTime, nullable=True),
+                       Column('sent_at', DateTime, nullable=True))
+
+class ToSendModel(Base):
+    __tablename__ = 'to_send_device'
+
+    id = Column(Integer, primary_key=True)
+    dev_id = Column(String(25), nullable=False)
+    msg = Column(String(300), nullable=False)
+    status = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(), nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+
 
 DBSession = sessionmaker(bind=engine)
 metadata.create_all(engine)

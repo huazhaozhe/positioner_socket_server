@@ -11,6 +11,7 @@ from handler import Handler
 
 handler = Handler()
 handler.add_case()
+handler.to_send_init()
 client = []
 
 

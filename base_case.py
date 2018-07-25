@@ -50,20 +50,54 @@ class BaseCase():
             return False
         return True
 
-    def test(self, data):
+    def test(self, data_tuple, data):
         try:
-            if not self.pretreatment(data):
+            if not self.pretreatment(data_tuple):
                 print('预处理失败')
                 return False
-            if data[3] != self.number:
+            if data_tuple[3] != self.number:
                 return self.error['protocol']
-            self.data_list = data
+            self.data_list = data_tuple
+            self.data = data
             return True
         except:
             return False
 
     def act(self, transport):
         pass
+
+
+class ToSendCase(BaseCase):
+
+    def test(self, data):
+        try:
+            if int(data[6:8], 16) == self.number:
+                self.data = data
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    def act(self, transport, id):
+        return self.send_to_device(transport, id)
+
+    def send_to_device(self, transport, id):
+        try:
+            transport.transport.write(bytes().fromhex(self.data))
+            msg = session.query(ToSendModel).filter(id==id).all()
+            if len(msg) > 1:
+                return False
+            elif len(msg) == 1:
+                msg = msg[0]
+                msg.status = 1
+                msg.sent_at = datetime.now()
+                session.commit()
+                return True
+            else:
+                return False
+        except:
+            return False
 
 
 class LoginCase(BaseCase):
