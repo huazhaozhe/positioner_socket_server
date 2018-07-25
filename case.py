@@ -1,122 +1,14 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time     : 2018/7/21 13:09
+# @Time     : 2018/7/25 9:11
 # @Author   : zhe
-# @FileName : data_structure.py
+# @FileName : case.py
 # @Project  : PyCharm
+
 
 import time
 from datetime import datetime
-from orm import *
-
-DEBUG = True
-startwith = (0x78, 0x78)
-endwith = (0x0d, 0x0a)
-
-login_client = []
-session = DBSession()
-
-
-def bytes_to_dec(value):
-    '''
-    :param value:数组或者元组,不能是字符串
-    :return: 十进制整数
-    如将[0xee, 0xff, 0x05, 0x12],也就是[238, 255, 5, 18]
-    转换为0xeeff0512的十进制4009690386
-    每个元素对应一个字节,每个元素最大0xff
-    '''
-    value_str = ''.join(
-        map(
-            lambda x: hex(x)[2:]
-            if len(hex(x)[2:]) == 2 else '0' + hex(x)[2:], value
-        )
-    )
-    return int(value_str, 16)
-
-
-class BaseCase():
-
-    def __init__(self, number, length, startwith=startwith, endwith=endwith):
-        self.startwith = startwith
-        self.endwith = endwith
-        self.number = number
-        self.length = length
-        self.error = {
-            'protocol': False,
-        }
-
-    def pretreatment(self, data):
-        try:
-            if (data[0], data[1]) != self.startwith:
-                return False
-            if (data[-2], data[-1]) != self.endwith:
-                return False
-        except:
-            return False
-        return True
-
-    def test(self, data):
-        try:
-            if not self.pretreatment(data):
-                print('预处理失败')
-                return False
-            if data[3] != self.number:
-                return self.error['protocol']
-            self.data_list = data
-            return True
-        except:
-            return False
-
-    def act(self, transport):
-        pass
-
-
-class LoginCase(BaseCase):
-
-    def login_success(self, dev, transport):
-        send_msg = ''.join(map(chr, self.startwith)) + chr(
-            0x01) + chr(0x01) + ''.join(map(chr, self.endwith))
-        print('%s 登录成功' % dev.dev_id)
-        transport.transport.write(send_msg.encode())
-        dev_info = {
-            'dev_id': dev.dev_id,
-            'name': dev.name,
-            'login_status': 1,
-            'login_time': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'last_time': time.strftime('%Y-%m-%d %H:%M:%S'),
-        }
-        transport.dev_info = dev_info
-        login_client.append(transport)
-        return True
-
-    def login_failure(self, dev_str, transport):
-        print('%s 登录失败' % dev_str)
-        send_msg = ''.join(map(chr, self.startwith)) + chr(0x01) + chr(
-            0x44) + ''.join(map(chr, self.endwith))
-        transport.transport.write(send_msg.encode())
-        transport.transport.loseConnection()
-        return True
-
-    def check_dev(self):
-        dev_str = ''
-        for i in self.data_list[4:4 + 8]:
-            dev_str += hex(i)[2:] if len(hex(i)[2:]) > 1 else '0' + hex(i)[2:]
-        dev = session.query(EmployeeInfoCard).filter(
-            EmployeeInfoCard.dev_id == dev_str).all()
-        if len(dev) > 1:
-            pass
-            # raise
-        elif len(dev) == 1 and dev[0].dev_id == dev_str:
-            return (True, dev[0])
-        else:
-            return (False, dev_str)
-
-    def act(self, transport):
-        dev_checked = self.check_dev()
-        if dev_checked[0]:
-            self.login_success(dev_checked[1], transport)
-        else:
-            self.login_failure(dev_checked[1], transport)
+from base_case import *
 
 
 class HeartBeat(BaseCase):
@@ -241,18 +133,19 @@ class DeviceTimeUpdate(BaseCase):
                 if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
             )
         )
-        print(time_str)
-        self.set_time(transport, time_str)
+        time_bytes = bytes().fromhex(time_str)
+        self.set_time(transport, time_bytes)
 
-    def set_time(self, transport, time_str):
-        send_msg = ''.join(map(chr, self.startwith)) + chr(0x07) + chr(
-            self.number) + time_str + ''.join(map(chr, self.endwith))
-        transport.transport.write(send_msg.encode())
+    def set_time(self, transport, time_bytes):
+        send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
+            self.number)).encode() + time_bytes + ''.join(
+            map(chr, self.endwith)).encode()
+        transport.transport.write(send_msg)
 
 
 class WifiPositioning(BaseCase):
 
-    def __init__(self, number, startwith=startwith, endwith=endwith):
+    def __init__(self, number, startwith, endwith):
         self.startwith = startwith
         self.endwith = endwith
         self.number = number
@@ -352,38 +245,3 @@ class WifiPositioning(BaseCase):
             map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
         return True
-
-
-class Handler():
-    logincase = LoginCase(number=0x01, length=0x0a)
-    Case = [
-        HeartBeat(number=0x08, length=0x01),
-        GpsPositioning(number=0x10, length=0x12),
-        DeviceStatus(number=0x13, length=0x06),
-        FactoryReset(number=0x15, length=0x01),
-        DeviceTimeUpdate(number=0x30, length=0x01),
-        WifiPositioning(number=0x69),
-    ]
-
-    def handler(self, data, transport):
-        data_tuple = tuple(data)
-        if DEBUG and transport not in login_client:
-            dev = session.query(EmployeeInfoCard).filter(
-                EmployeeInfoCard.dev_id == '0123456789012345').one()
-            self.logincase.login_success(dev, transport)
-            login_client.append(transport)
-        if transport in login_client:
-            transport.dev_info['last_time'] = time.strftime(
-                '%Y-%m-%d %H:%M:%S')
-            print('在 %s 收到设备的消息: %s\n字符串: %s\n元组: %s\n' % (
-                transport.dev_info['last_time'],
-                transport.dev_info['dev_id'], data, data_tuple))
-            for case in self.Case:
-                if case.test(data_tuple):
-                    case.act(transport)
-                    break
-        elif self.logincase.test(data_tuple):
-            self.logincase.act(transport)
-        else:
-            transport.transport.loseConnection()
-            # transport.transport.abortConnection()
