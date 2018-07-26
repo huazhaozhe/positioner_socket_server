@@ -1,0 +1,17 @@
+aiomysql==0.0.19
+asn1crypto==0.24.0
+attrs==18.1.0
+Automat==0.7.0
+cffi==1.11.5
+constantly==15.1.0
+cryptography==2.2.2
+hyperlink==18.0.0
+idna==2.7
+incremental==17.5.0
+pycparser==2.18
+PyHamcrest==1.9.0
+PyMySQL==0.9.2
+six==1.11.0
+SQLAlchemy==1.2.10
+Twisted==18.7.0
+zope.interface==4.5.0
