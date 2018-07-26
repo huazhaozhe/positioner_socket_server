@@ -7,6 +7,7 @@
 
 
 import time
+import binascii
 from datetime import datetime
 from base_case import *
 
@@ -154,7 +155,7 @@ class WifiPositioning(BaseCase):
 
     def act(self, transport):
         dev_id = transport.dev_info['dev_id']
-        date_time = self.wifi_date_time(self.data_list[4:4 + 6])
+        date_time = self.wifi_date_time(self.data[4:4 + 6])
         data = {
             'dev_id': transport.dev_info['dev_id'],
             'name': transport.dev_info['name'],
@@ -234,10 +235,12 @@ class WifiPositioning(BaseCase):
         session.commit()
 
     def wifi_date_time(self, date_time):
-        # date_time = list(map(str, date_time))
-        # return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
-        date_time = list(map(str, date_time))
-        date_time_str = '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+        date_time = str(binascii.b2a_hex(date_time))[2:-1]
+        date_time_list = []
+        for i in range(0, len(date_time), 2):
+            date_time_list.append(date_time[i:i + 2])
+        date_time_str = '-'.join(date_time_list[:3]) + ' ' + ':'.join(
+            date_time_list[3:])
         return datetime.strptime(date_time_str, '%y-%m-%d %H:%M:%S')
 
     def server_response(self, transport):
