@@ -7,9 +7,7 @@
 
 
 from case import *
-
-# DEBUG = True
-DEBUG = False
+from config import DEBUG
 
 startwith = (0x78, 0x78)
 endwith = (0x0d, 0x0a)
@@ -28,19 +26,25 @@ case = [
     DeviceTimeUpdate(number=0x30, length=0x01, startwith=startwith,
                      endwith=endwith),
     WifiPositioning(number=0x69, startwith=startwith, endwith=endwith),
+    SetUploadIntervalBySms(number=0x98, length=0x03, startwith=startwith,
+                           endwith=endwith),
 ]
 
 to_send_case = [
     RebootDevice(number=0x48, length=0x01, startwith=startwith,
                  endwith=endwith),
+    SetHostPort(number=0x66, length=0x07, startwith=startwith,
+                endwith=endwith),
+    ManualPositioning(number=0x80, length=0x01, startwith=startwith,
+                      endwith=endwith),
+    SetUploadIntervalByServer(number=0x97, length=0x03, startwith=startwith,
+                              endwith=endwith),
 ]
 
 
 class Handler():
 
-    def __init__(self, startwith=startwith, endwith=endwith):
-        self.startwith = startwith
-        self.endwith = endwith
+    def __init__(self):
         self.login_client = []
         self.to_send_enable = 0
 
@@ -58,8 +62,12 @@ class Handler():
                 transport.dev_info['last_time'],
                 transport.dev_info['dev_id'], data, data_tuple))
             for case in self.case:
-                if case.test(data_tuple, data):
+                test = case.test(data_tuple, data)
+                print('test', test)
+                if test is True:
                     case.act(transport)
+                    break
+                elif test is 0:
                     break
             return True
         elif self.login_case.test(data_tuple, data):
@@ -75,9 +83,10 @@ class Handler():
                 EmployeeInfoCard.dev_id == '0123456789012345').one()
             self.login_case.login_success(dev, transport)
             self.login_client.append(transport)
-            if self.to_send_enable and transport.dev_info[
-                'dev_id'] in self.msg_dict:
-                self.to_send_device(transport)
+            if self.to_send_enable:
+                self.to_send_init()
+                if transport.dev_info['dev_id'] in self.msg_dict:
+                    self.to_send_device(transport)
             return True
 
         transport.transport.loseConnection()
@@ -98,17 +107,17 @@ class Handler():
         return msg_dict
 
     def to_send_device(self, transport):
-        for id, msg in self.msg_dict[transport.dev_info['dev_id']]:
+        # for id, msg in self.msg_dict[transport.dev_info['dev_id']]:
+        while self.msg_dict[transport.dev_info['dev_id']]:
+            (id, msg) = self.msg_dict[transport.dev_info['dev_id']].pop(0)
             for case in self.to_send_case:
                 if case.test(msg):
-                    if case.act(transport, id):
-                        self.msg_dict[transport.dev_info['dev_id']].remove(
-                            (id, msg))
+                    case.act(transport, id)
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
         print('新的msg_dict', self.msg_dict)
 
-    def add_msg(self, msg_list):
+    def add_msg(self, msg_data):
         try:
             dev_id_list = []
             dev_all = session.query(EmployeeInfoCard).all()
@@ -116,12 +125,27 @@ class Handler():
                 dev_id_list.append(dev.dev_id)
             print(dev_id_list)
             id_list = []
-            if msg_list[0] == 'all':
+            msg_list = []
+            for msg in msg_data[1]:
+                new_msg = msg.replace(' ', '').replace(':', '').replace('#',
+                                                                        '')
+                if len(new_msg) % 2 != 0:
+                    print('msg长度不正确: ', msg)
+                    continue
+                try:
+                    bytes().fromhex(new_msg)
+                except:
+                    print('msg不是16进制字节串: ', msg)
+                    continue
+                msg_list.append(new_msg)
+            if msg_data[0] == 'all':
                 id_list = dev_id_list
             else:
-                id_list = msg_list[0]
+                id_list = msg_data[0]
             for id in id_list:
-                for msg in msg_list[1]:
+                if id not in dev_id_list:
+                    print('数据库中不存在的设备: ', id)
+                for msg in msg_list:
                     new_msg = ToSendModel(dev_id=id, msg=msg,
                                           created_at=datetime.now(), status=0)
                     session.add(new_msg)

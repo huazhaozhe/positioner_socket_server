@@ -54,11 +54,12 @@ class BaseCase():
         try:
             if not self.pretreatment(data_tuple):
                 print('预处理失败')
-                return False
+                return 0
             if data_tuple[3] != self.number:
                 return self.error['protocol']
             self.data_list = data_tuple
             self.data = data
+            print('协议', hex(self.number))
             return True
         except:
             return False
@@ -129,6 +130,7 @@ class LoginCase(BaseCase):
         dev_str = ''
         for i in self.data_list[4:4 + 8]:
             dev_str += hex(i)[2:] if len(hex(i)[2:]) > 1 else '0' + hex(i)[2:]
+        print('dev_str', dev_str)
         dev = session.query(EmployeeInfoCard).filter(
             EmployeeInfoCard.dev_id == dev_str).all()
         if len(dev) > 1:

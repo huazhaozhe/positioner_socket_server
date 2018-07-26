@@ -115,9 +115,7 @@ class FactoryReset(BaseCase):
         self.factory_reset(transport)
 
     def factory_reset(self, transport):
-        send_mag = ''.join(map(chr, self.startwith)) + chr(0x01) + chr(
-            self.number) + ''.join(map(chr, self.endwith))
-        transport.transport.write(send_mag.encode())
+        transport.transport.write(self.data)
 
 
 class DeviceTimeUpdate(BaseCase):
@@ -247,6 +245,26 @@ class WifiPositioning(BaseCase):
         return True
 
 
-class RebootDevice(ToSendCase):
+class SetUploadIntervalBySms(BaseCase):
 
+    def act(self, transport):
+        self.server_ack(transport)
+
+    def server_ack(self, transport):
+        transport.transport.write(self.data)
+
+
+class RebootDevice(ToSendCase):
+    pass
+
+
+class SetHostPort(ToSendCase):
+    pass
+
+
+class ManualPositioning(ToSendCase):
+    pass
+
+
+class SetUploadIntervalByServer(ToSendCase):
     pass
