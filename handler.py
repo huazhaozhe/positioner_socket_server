@@ -26,6 +26,7 @@ case = [
     DeviceTimeUpdate(number=0x30, length=0x01, startwith=startwith,
                      endwith=endwith),
     WifiPositioning(number=0x69, startwith=startwith, endwith=endwith),
+    OffWifiPositioning(number=0x17, startwith=startwith, endwith=endwith),
     SetUploadIntervalBySms(number=0x98, length=0x03, startwith=startwith,
                            endwith=endwith),
 ]

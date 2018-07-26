@@ -54,28 +54,32 @@ class EmployeeInfoCard(Base):
 
 hisdata = Table('hisdata', metadata,
                 Column('id', Integer, primary_key=True),
-                Column('dev_id', String(20), nullable=True),
+                Column('dev_id', String(20), nullable=False),
                 Column('name', String(20), nullable=True),
-                Column('time', String(25), nullable=True),
+                # Column('time', String(25), nullable=True),
+                Column('time', DateTime, nullable=True),
                 Column('lng', String(50), nullable=True),
                 Column('lat', String(50), nullable=True))
+
 
 class HisData(Base):
     __tablename__ = 'hisdata'
 
     id = Column(Integer, primary_key=True)
-    dev_id = Column(String(20))
-    name = Column(String(20))
-    time = Column(String(25))
-    lng = Column(String(50))
-    lat = Column(String(50))
+    dev_id = Column(String(20), nullable=False)
+    name = Column(String(20), nullable=True)
+    # time = Column(String(25))
+    time = Column(DateTime, nullable=True)
+    lng = Column(String(50), nullable=True)
+    lat = Column(String(50), nullable=True)
 
 
 location_card = Table('location_card', metadata,
                       Column('dev_id', String(25), primary_key=True,
                              nullable=False),
                       Column('name', String(30), nullable=True),
-                      Column('time', String(30), nullable=True),
+                      # Column('time', String(30), nullable=True),
+                      Column('time', DateTime, nullable=True),
                       Column('lng', String(50), nullable=True),
                       Column('lat', String(50), nullable=True),
                       Column('area', String(30), nullable=True),
@@ -83,18 +87,20 @@ location_card = Table('location_card', metadata,
                       Column('battery', Integer(), nullable=True),
                       Column('link', String(5), nullable=True))
 
+
 class LocationCard(Base):
     __tablename__ = 'location_card'
 
     dev_id = Column(String(25), primary_key=True)
-    name = Column(String(30))
-    time = Column(String(30))
-    lng = Column(String(50))
-    lat = Column(String(50))
-    area = Column(String(30))
-    connect = Column(Integer)
-    battery = Column(Integer)
-    link = Column(String(5))
+    name = Column(String(30), nullable=True)
+    # time = Column(String(30))
+    time = Column(DateTime, nullable=True)
+    lng = Column(String(50), nullable=True)
+    lat = Column(String(50), nullable=True)
+    area = Column(String(30), nullable=True)
+    connect = Column(Integer, nullable=True)
+    battery = Column(Integer, nullable=True)
+    link = Column(String(5), nullable=True)
 
 
 to_send_device = Table('to_send_device', metadata,
@@ -104,6 +110,7 @@ to_send_device = Table('to_send_device', metadata,
                        Column('status', Integer, default=0, nullable=False),
                        Column('created_at', DateTime, nullable=True),
                        Column('sent_at', DateTime, nullable=True))
+
 
 class ToSendModel(Base):
     __tablename__ = 'to_send_device'

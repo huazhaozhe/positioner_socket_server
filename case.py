@@ -42,7 +42,8 @@ class GpsPositioning(BaseCase):
 
     def gps_date_time(self, date_time):
         date_time = list(map(str, date_time))
-        return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+        date_time_str = '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+        return datetime.strptime(date_time_str, '%y-%m-%d %H:%M:%S')
 
     def insert_to_hisdata(self, data):
         hisdata = HisData(
@@ -233,8 +234,11 @@ class WifiPositioning(BaseCase):
         session.commit()
 
     def wifi_date_time(self, date_time):
+        # date_time = list(map(str, date_time))
+        # return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
         date_time = list(map(str, date_time))
-        return '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+        date_time_str = '-'.join(date_time[:3]) + ' ' + ':'.join(date_time[3:])
+        return datetime.strptime(date_time_str, '%y-%m-%d %H:%M:%S')
 
     def server_response(self, transport):
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
@@ -243,6 +247,10 @@ class WifiPositioning(BaseCase):
             map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
         return True
+
+
+class OffWifiPositioning(WifiPositioning):
+    pass
 
 
 class SetUploadIntervalBySms(BaseCase):
