@@ -205,3 +205,4 @@ $RECYCLE.BIN/
 *.~vsd*
 
 config.py
+local_test.py
