@@ -8,6 +8,7 @@
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory
 from handler import Handler
+from config import server_port
 
 handler = Handler()
 handler.add_case()
@@ -36,6 +37,6 @@ class MyProtocal(Protocol):
 if __name__ == '__main__':
     factory = Factory()
     factory.protocol = MyProtocal
-    info = reactor.listenTCP(10086, factory)
+    info = reactor.listenTCP(server_port, factory)
     print('server at %s' % info.port)
     reactor.run()
