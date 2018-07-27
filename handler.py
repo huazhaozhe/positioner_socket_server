@@ -51,13 +51,16 @@ to_send_case = [
 
 class Handler():
 
-    def __init__(self):
+    def __init__(self, to_send_enable=False):
         self.login_client = []
-        self.to_send_enable = 0
+        self.to_send_enable = to_send_enable
+        self.msg_dict = {}
 
-    def add_case(self, login_case=login_case, case=case):
+    def add_case(self, login_case=login_case, case=case,
+                 to_send_case=to_send_case):
         self.login_case = login_case
         self.case = case
+        self.to_send_case = to_send_case
 
     def handler(self, data, transport):
         data_tuple = tuple(data)
@@ -81,7 +84,7 @@ class Handler():
             if self.login_case.act(transport):
                 self.login_client.append(transport)
                 if self.to_send_enable:
-                    self.to_send_init()
+                    self.to_send_init(transport.dev_info['dev_id'])
                     if transport.dev_info['dev_id'] in self.msg_dict:
                         self.to_send_device(transport)
                 return True
@@ -91,7 +94,7 @@ class Handler():
             self.login_case.login_success(dev, transport)
             self.login_client.append(transport)
             if self.to_send_enable:
-                self.to_send_init()
+                self.to_send_init(transport.dev_info['dev_id'])
                 if transport.dev_info['dev_id'] in self.msg_dict:
                     self.to_send_device(transport)
             return True
@@ -99,19 +102,18 @@ class Handler():
         transport.transport.loseConnection()
         # transport.transport.abortConnection()
 
-    def to_send_init(self):
+    def to_send_init(self, dev_id):
         msg_list = session.query(ToSendModel).filter(
-            ToSendModel.status == 0).all()
-        msg_dict = {}
-        for msg in msg_list:
-            if msg.dev_id not in msg_dict:
-                msg_dict[msg.dev_id] = []
-            msg_dict[msg.dev_id].append((msg.id, msg.msg))
-        self.to_send_enable = 1
-        self.msg_dict = msg_dict
-        self.to_send_case = to_send_case
-        print('原始msg_dict', msg_dict)
-        return msg_dict
+            ToSendModel.dev_id == dev_id,
+            ToSendModel.status == 0
+        ).all()
+        if len(msg_list) > 0:
+            if dev_id not in self.msg_dict:
+                self.msg_dict[dev_id] = []
+            for msg in msg_list:
+                self.msg_dict[msg.dev_id].append((msg.id, msg.msg))
+        print('原始msg_dict', self.msg_dict)
+        return self.msg_dict
 
     def to_send_device(self, transport):
         # for id, msg in self.msg_dict[transport.dev_info['dev_id']]:

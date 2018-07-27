@@ -10,9 +10,8 @@ from twisted.internet.protocol import Protocol, Factory
 from handler import Handler
 from config import server_port
 
-handler = Handler()
+handler = Handler(to_send_enable=True)
 handler.add_case()
-handler.to_send_init()
 client = []
 
 
