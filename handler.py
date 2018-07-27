@@ -79,20 +79,18 @@ class Handler():
                     break
                 elif test is 0:
                     break
-            return True
+
         elif self.login_case.test(data_tuple, data):
             if self.login_case.act(transport):
                 self.login_client.append(transport)
-                if self.to_send_enable:
-                    self.to_send_init(transport.dev_info['dev_id'])
-                    if transport.dev_info['dev_id'] in self.msg_dict:
-                        self.to_send_device(transport)
-                return True
+
         elif DEBUG and transport not in self.login_client:
             dev = session.query(EmployeeInfoCard).filter(
                 EmployeeInfoCard.dev_id == '0123456789012345').one()
             self.login_case.login_success(dev, transport)
             self.login_client.append(transport)
+
+        if transport in self.login_client:
             if self.to_send_enable:
                 self.to_send_init(transport.dev_info['dev_id'])
                 if transport.dev_info['dev_id'] in self.msg_dict:
@@ -119,8 +117,9 @@ class Handler():
         # for id, msg in self.msg_dict[transport.dev_info['dev_id']]:
         while self.msg_dict[transport.dev_info['dev_id']]:
             (id, msg) = self.msg_dict[transport.dev_info['dev_id']].pop(0)
+            new_msg = msg.replace(' ', '').replace(':', '').replace('#', '')
             for case in self.to_send_case:
-                if case.test(msg):
+                if case.test(new_msg):
                     case.act(transport, id)
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
