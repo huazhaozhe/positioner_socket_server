@@ -116,6 +116,10 @@ class LoginCase(BaseCase):
             'last_time': time.strftime('%Y-%m-%d %H:%M:%S'),
         }
         transport.dev_info = dev_info
+        location = session.query(LocationCard).filter(
+            LocationCard.dev_id == dev.dev_id).first()
+        location.connect = 1
+        session.commit()
         return True
 
     def login_failure(self, dev_str, transport):

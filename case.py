@@ -265,6 +265,13 @@ class SetUploadIntervalBySms(BaseCase):
         transport.transport.write(self.data)
 
 
+class DeviceSleep(BaseCase):
+
+    def act(self, transport):
+        print('设备 %s 休眠' % transport.dev_info['dev_id'])
+        transport.transport.loseConnection()
+
+
 class RebootDevice(ToSendCase):
     pass
 
@@ -278,4 +285,12 @@ class ManualPositioning(ToSendCase):
 
 
 class SetUploadIntervalByServer(ToSendCase):
+    pass
+
+
+class SetHeartBeat(ToSendCase):
+    pass
+
+
+class ForbiddenToUpload(ToSendCase):
     pass

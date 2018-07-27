@@ -25,6 +25,7 @@ class MyProtocal(Protocol):
     def connectionLost(self, reason):
         if self in handler.login_client:
             print('已经登录的客户端 %s:%s已断开' % self.transport.client)
+            handler.logout(self)
             handler.login_client.remove(self)
         elif self in client:
             print('未登录的客户端%s:%s已断开' % self.transport.client)

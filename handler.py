@@ -29,6 +29,8 @@ case = [
     OffWifiPositioning(number=0x17, startwith=startwith, endwith=endwith),
     SetUploadIntervalBySms(number=0x98, length=0x03, startwith=startwith,
                            endwith=endwith),
+    DeviceSleep(number=0x14, length=0x01, startwith=startwith,
+                endwith=endwith),
 ]
 
 to_send_case = [
@@ -40,6 +42,10 @@ to_send_case = [
                       endwith=endwith),
     SetUploadIntervalByServer(number=0x97, length=0x03, startwith=startwith,
                               endwith=endwith),
+    SetHeartBeat(number=0x13, length=0x02, startwith=startwith,
+                 endwith=endwith),
+    ForbiddenToUpload(number=0x44, length=0x01, startwith=startwith,
+                      endwith=endwith),
 ]
 
 
@@ -153,3 +159,11 @@ class Handler():
             session.commit()
         except:
             print('添加发生错误')
+
+    def logout(self, transport):
+        location = session.query(LocationCard).filter(
+            LocationCard.dev_id == transport.dev_info['dev_id']).first()
+        location.connect = 0
+        location.last_time = datetime.now()
+        session.commit()
+        del transport.dev_info

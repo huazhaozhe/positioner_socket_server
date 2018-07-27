@@ -83,9 +83,10 @@ location_card = Table('location_card', metadata,
                       Column('lng', String(50), nullable=True),
                       Column('lat', String(50), nullable=True),
                       Column('area', String(30), nullable=True),
-                      Column('connect', Integer(), nullable=True),
-                      Column('battery', Integer(), nullable=True),
-                      Column('link', String(5), nullable=True))
+                      Column('connect', Integer, nullable=True),
+                      Column('battery', Integer, nullable=True),
+                      Column('link', String(5), nullable=True),
+                      Column('last_time', DateTime, nullable=True))
 
 
 class LocationCard(Base):
@@ -101,6 +102,7 @@ class LocationCard(Base):
     connect = Column(Integer, nullable=True)
     battery = Column(Integer, nullable=True)
     link = Column(String(5), nullable=True)
+    last_time = Column(DateTime, nullable=True)
 
 
 to_send_device = Table('to_send_device', metadata,
@@ -119,7 +121,7 @@ class ToSendModel(Base):
     dev_id = Column(String(25), nullable=False)
     msg = Column(String(300), nullable=False)
     status = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.now(), nullable=True)
+    created_at = Column(DateTime, default=datetime.now, nullable=True)
     sent_at = Column(DateTime, nullable=True)
 
 
