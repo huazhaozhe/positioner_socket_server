@@ -8,7 +8,7 @@
 
 import time
 import binascii
-from datetime import datetime, timedelta
+from datetime import datetime
 from base_case import *
 
 
@@ -123,9 +123,10 @@ class FactoryReset(BaseCase):
 class DeviceTimeUpdate(BaseCase):
 
     def act(self, transport):
-        time_now = datetime.now() + timedelta(hours=8)
+        time_now = datetime.now()
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
+        print(time_list)
         time_str = ''.join(
             map(
                 lambda x: hex(x)[2:]
