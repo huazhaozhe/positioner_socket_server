@@ -32,7 +32,7 @@ class HeartBeat(BaseCase):
 
     def set_time(self, transport, time_bytes):
         send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
-            self.number)).encode() + time_bytes + ''.join(
+            0x30)).encode() + time_bytes + ''.join(
             map(chr, self.endwith)).encode()
         log_str = '协议:%s尝试设置时间 bytes字节串:%s 16进制字节串:%s' % (
                 hex(self.number), send_msg, send_msg.hex())
