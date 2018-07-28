@@ -58,7 +58,12 @@ class Handler():
         self.to_send_case = to_send_case
 
     def handler(self, data, transport):
-        data_tuple = tuple(data)
+        try:
+            data_tuple = tuple(data)
+            assert len(data_tuple) > 4
+        except:
+            transport.transport.loseConnection()
+            return False
 
         if transport in self.login_client:
             transport.dev_info['last_time'] = time.strftime(
@@ -70,7 +75,12 @@ class Handler():
                     case.act(transport)
                     flag = 0
                     break
-                elif test is 0:
+                elif test == 0:
+                    write_logger(transport.dev_info['dev_id'] + '.log',
+                                 '头尾检测失败\t原始字节串 %s\t10进制元组 %s'
+                                 % (data, data_tuple),
+                                 level=logging.ERROR
+                                 )
                     break
             if flag:
                 write_logger(transport.dev_info['dev_id'] + '.log',

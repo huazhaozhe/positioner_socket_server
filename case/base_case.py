@@ -118,10 +118,10 @@ class LoginCase(BaseCase):
     def login_success(self, dev, transport):
         send_msg = ''.join(map(chr, self.startwith)) + chr(
             0x01) + chr(0x01) + ''.join(map(chr, self.endwith))
+        transport.transport.write(send_msg.encode())
         dev_info = {
             'dev_id': dev.dev_id,
             'name': dev.name,
-            'login_status': 1,
             'login_time': time.strftime('%Y-%m-%d %H:%M:%S'),
             'last_time': time.strftime('%Y-%m-%d %H:%M:%S'),
         }
@@ -131,20 +131,18 @@ class LoginCase(BaseCase):
         location.connect = 1
         session.commit()
         (host, port) = transport.transport.client
-        log_str = '设备 %s 登录成功 地址 %s:%s' \
-                  % (dev.dev_id, host, port)
+        log_str = '设备 %s 登录成功 地址 %s:%s' % (dev.dev_id, host, port)
         write_logger('login.log', log_str, level=logging.INFO)
         write_logger(dev.dev_id + '.log', log_str, level=logging.INFO)
-        transport.transport.write(send_msg.encode())
         return True
 
-    def login_failure(self, dev_str, transport):
+    def login_failure(self, dev_id, transport):
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x01) + chr(
             0x44) + ''.join(map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
-        transport.transport.loseConnection()
-        write_logger('login.log', '设备 ' + dev_str + ' 登录失败',
-                     level=logging.INFO)
+        (host, port) = transport.transport.client
+        log_str = '设备 %s 登录失败 地址 %s:%s' % (dev_id, host, port)
+        write_logger('login.log', log_str, level=logging.WARNING)
         return False
 
     def check_dev(self):
