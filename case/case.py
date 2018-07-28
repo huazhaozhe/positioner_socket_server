@@ -9,7 +9,7 @@
 import time
 import binascii
 from datetime import datetime
-from base_case import *
+from case.base_case import *
 
 
 class HeartBeat(BaseCase):
@@ -270,6 +270,10 @@ class DeviceSleep(BaseCase):
     def act(self, transport):
         print('设备 %s 休眠' % transport.dev_info['dev_id'])
         transport.transport.loseConnection()
+
+
+class SyncSettings(ToSendCase):
+    pass
 
 
 class RebootDevice(ToSendCase):

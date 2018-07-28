@@ -12,13 +12,13 @@ from sqlalchemy import String, Column, create_engine, Float, Integer, MetaData, 
     Table, DateTime
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from config import mysql_conf
+from config import mysql_conf, sql_echo
 
 Base = declarative_base()
 engine_str = 'mysql+pymysql://' + mysql_conf['user'] + ':' + \
              mysql_conf['password'] + '@' + mysql_conf['host'] + ':' + \
              mysql_conf['port'] + '/' + mysql_conf['database']
-engine = create_engine(engine_str, echo=True)
+engine = create_engine(engine_str, echo=sql_echo)
 metadata = MetaData(engine)
 
 

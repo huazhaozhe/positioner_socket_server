@@ -6,9 +6,12 @@
 # @Project  : PyCharm
 
 import time
+import os
 from datetime import datetime
-from orm import *
+from orm.orm import *
 
+BASE_DIR = os.path.dirname(__file__)
+LOG_DIR = os.path.join(os.path.dirname(BASE_DIR), 'log')
 session = DBSession()
 
 

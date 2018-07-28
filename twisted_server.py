@@ -7,7 +7,7 @@
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory
-from handler import Handler
+from handler.handler import Handler
 from config import server_port
 
 handler = Handler(to_send_enable=True)

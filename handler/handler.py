@@ -6,7 +6,7 @@
 # @Project  : PyCharm
 
 
-from case import *
+from case.case import *
 from config import DEBUG
 
 startwith = (0x78, 0x78)
