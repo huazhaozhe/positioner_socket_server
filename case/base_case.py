@@ -69,7 +69,10 @@ class BaseCase():
         pass
 
 
-class ToSendCase(BaseCase):
+class ToSendCase():
+
+    def __init__(self, number):
+        self.number = number
 
     def test(self, data):
         try:
@@ -83,8 +86,12 @@ class ToSendCase(BaseCase):
 
     def act(self, transport, id):
         self.send_to_device(transport, id)
-        log_str = '协议:%s服务器主动发送消息 内容:%s' \
-                  % (hex(self.number), self.data)
+        if self.number == 0x00:
+            log_str = '协议:%s服务器发送未能理解的消息 内容:%s' \
+                      % (hex(self.number), self.data)
+        else:
+            log_str = '协议:%s服务器主动发送消息 内容:%s' \
+                      % (hex(self.number), self.data)
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
 
@@ -160,3 +167,9 @@ class LoginCase(BaseCase):
             return self.login_success(dev_checked[1], transport)
         else:
             return self.login_failure(dev_checked[1], transport)
+
+
+class ToSendMsgNoNumber(ToSendCase):
+
+    def test(self):
+        return True

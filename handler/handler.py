@@ -34,18 +34,13 @@ case = [
 ]
 
 to_send_case = [
-    RebootDevice(number=0x48, length=0x01, startwith=startwith,
-                 endwith=endwith),
-    SetHostPort(number=0x66, length=0x07, startwith=startwith,
-                endwith=endwith),
-    ManualPositioning(number=0x80, length=0x01, startwith=startwith,
-                      endwith=endwith),
-    SetUploadIntervalByServer(number=0x97, length=0x03, startwith=startwith,
-                              endwith=endwith),
-    SetHeartBeat(number=0x13, length=0x02, startwith=startwith,
-                 endwith=endwith),
-    ForbiddenToUpload(number=0x44, length=0x01, startwith=startwith,
-                      endwith=endwith),
+    RebootDevice(number=0x48),
+    SetHostPort(number=0x66),
+    ManualPositioning(number=0x80),
+    SetUploadIntervalByServer(number=0x97),
+    SetHeartBeat(number=0x13),
+    ForbiddenToUpload(number=0x44),
+    ToSendMsgNoNumber(number=0x00),
 ]
 
 
@@ -80,7 +75,7 @@ class Handler():
             if flag:
                 write_logger(transport.dev_info['dev_id'] + '.log',
                              '协议%s不能够解析 原始字节串:%s 10进制元组:%s'
-                             % (data_tuple[3], data, data_tuple),
+                             % (hex(data_tuple[3]), data, data_tuple),
                              level=logging.WARNING
                              )
 
