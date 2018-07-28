@@ -81,6 +81,9 @@ class Handler():
 
         elif self.login_case.test(data_tuple, data):
             if self.login_case.act(transport):
+                for tcp in self.login_client:
+                    if tcp.dev_info['dev_id'] == transport.dev_info['dev_id']:
+                        tcp.transport.loseConnection()
                 self.login_client.append(transport)
 
         elif DEBUG and transport not in self.login_client:
