@@ -94,8 +94,7 @@ class Handler():
 
         if transport in self.login_client:
             if self.to_send_enable:
-                self.to_send_init(transport.dev_info['dev_id'])
-                if transport.dev_info['dev_id'] in self.msg_dict:
+                if self.to_send_init(transport.dev_info['dev_id']):
                     self.to_send_device(transport)
             return True
 
@@ -112,7 +111,7 @@ class Handler():
                 self.msg_dict[dev_id] = []
             for msg in msg_list:
                 self.msg_dict[msg.dev_id].append((msg.id, msg.msg))
-        return self.msg_dict
+        return len(msg_list)
 
     def to_send_device(self, transport):
         while self.msg_dict[transport.dev_info['dev_id']]:
@@ -123,6 +122,7 @@ class Handler():
                     case.act(transport, id)
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
+        return True
 
     def add_msg(self, msg_data):
         try:

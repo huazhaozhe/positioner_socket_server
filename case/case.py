@@ -18,6 +18,27 @@ class HeartBeat(BaseCase):
         write_logger(transport.dev_info['dev_id'] + '.log',
                      '协议%s心跳包' % hex(self.number),
                      level=logging.INFO)
+        time_now = datetime.now()
+        time_list = [time_now.year, time_now.month, time_now.day,
+                     time_now.hour, time_now.minute, time_now.second]
+        time_str = ''.join(
+            map(
+                lambda x: hex(x)[2:]
+                if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
+            )
+        )
+        time_bytes = bytes().fromhex(time_str)
+        self.set_time(transport, time_bytes)
+
+    def set_time(self, transport, time_bytes):
+        send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
+            self.number)).encode() + time_bytes + ''.join(
+            map(chr, self.endwith)).encode()
+        log_str = '协议:%s尝试设置时间 bytes字节串:%s 16进制字节串:%s' % (
+                hex(self.number), send_msg, send_msg.hex())
+        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
+                     level=logging.INFO)
+        transport.transport.write(send_msg)
 
 
 class GpsPositioning(BaseCase):
