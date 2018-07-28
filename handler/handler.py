@@ -68,17 +68,21 @@ class Handler():
         if transport in self.login_client:
             transport.dev_info['last_time'] = time.strftime(
                 '%Y-%m-%d %H:%M:%S')
-            print('在 %s 收到设备的消息: %s\n字符串: %s\n元组: %s\n' % (
-                transport.dev_info['last_time'],
-                transport.dev_info['dev_id'], data, data_tuple))
+            flag = 1
             for case in self.case:
                 test = case.test(data_tuple, data)
-                print('test', test)
                 if test is True:
                     case.act(transport)
+                    flag = 0
                     break
                 elif test is 0:
                     break
+            if flag:
+                write_logger(transport.dev_info['dev_id'] + '.log',
+                             '协议%s不能够解析 原始字节串:%s 10进制元组:%s'
+                             % (data_tuple[3], data, data_tuple),
+                             level=logging.WARNING
+                             )
 
         elif self.login_case.test(data_tuple, data):
             if self.login_case.act(transport):
@@ -110,11 +114,9 @@ class Handler():
                 self.msg_dict[dev_id] = []
             for msg in msg_list:
                 self.msg_dict[msg.dev_id].append((msg.id, msg.msg))
-        print('原始msg_dict', self.msg_dict)
         return self.msg_dict
 
     def to_send_device(self, transport):
-        # for id, msg in self.msg_dict[transport.dev_info['dev_id']]:
         while self.msg_dict[transport.dev_info['dev_id']]:
             (id, msg) = self.msg_dict[transport.dev_info['dev_id']].pop(0)
             new_msg = msg.replace(' ', '').replace(':', '').replace('#', '')
@@ -123,7 +125,6 @@ class Handler():
                     case.act(transport, id)
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
-        print('新的msg_dict', self.msg_dict)
 
     def add_msg(self, msg_data):
         try:
@@ -131,19 +132,22 @@ class Handler():
             dev_all = session.query(EmployeeInfoCard).all()
             for dev in dev_all:
                 dev_id_list.append(dev.dev_id)
-            print(dev_id_list)
             id_list = []
             msg_list = []
             for msg in msg_data[1]:
                 new_msg = msg.replace(' ', '').replace(':', '').replace('#',
                                                                         '')
                 if len(new_msg) % 2 != 0:
-                    print('msg长度不正确: ', msg)
+                    write_logger('handler.log',
+                                 'msg: %s 长度不正确, 放弃添加本条msg' % msg,
+                                 level=logging.WARNING, log_debug=True)
                     continue
                 try:
                     bytes().fromhex(new_msg)
                 except:
-                    print('msg不是16进制字节串: ', msg)
+                    write_logger('handler.log',
+                                 'msg: %s 不是16进制字节串, 放弃添加本条msg' % msg,
+                                 level=logging.WARNING, log_debug=True)
                     continue
                 msg_list.append(new_msg)
             if msg_data[0] == 'all':
@@ -152,14 +156,17 @@ class Handler():
                 id_list = msg_data[0]
             for id in id_list:
                 if id not in dev_id_list:
-                    print('数据库中不存在的设备: ', id)
+                    write_logger('handler.log',
+                                 '数据库中不存在设备ID %s, 但任然添加至发送数据库中' % id,
+                                 level=logging.WARNING, log_debug=True)
                 for msg in msg_list:
                     new_msg = ToSendModel(dev_id=id, msg=msg,
                                           created_at=datetime.now(), status=0)
                     session.add(new_msg)
             session.commit()
-        except:
-            print('添加发生错误')
+        except Exception as e:
+            write_logger('handler.log', e,
+                         level=logging.ERROR, log_debug=True)
 
     def logout(self, transport):
         location = session.query(LocationCard).filter(
@@ -167,4 +174,10 @@ class Handler():
         location.connect = 0
         location.last_time = datetime.now()
         session.commit()
+        (host, port) = transport.transport.client
+        log_str = '设备 %s 注销 地址 %s:%s' \
+                  % (transport.dev_info['dev_id'], host, port)
+        write_logger('login.log', log_str, level=logging.INFO)
+        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
+                     level=logging.INFO)
         del transport.dev_info

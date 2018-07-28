@@ -7,11 +7,11 @@
 
 import time
 import os
+import logging
 from datetime import datetime
 from orm.orm import *
+from socket_fun import write_logger
 
-BASE_DIR = os.path.dirname(__file__)
-LOG_DIR = os.path.join(os.path.dirname(BASE_DIR), 'log')
 session = DBSession()
 
 
@@ -56,13 +56,11 @@ class BaseCase():
     def test(self, data_tuple, data):
         try:
             if not self.pretreatment(data_tuple):
-                print('预处理失败')
                 return 0
             if data_tuple[3] != self.number:
                 return self.error['protocol']
             self.data_list = data_tuple
             self.data = data
-            print('协议', hex(self.number))
             return True
         except:
             return False
@@ -84,7 +82,11 @@ class ToSendCase(BaseCase):
             return False
 
     def act(self, transport, id):
-        return self.send_to_device(transport, id)
+        self.send_to_device(transport, id)
+        log_str = '协议:%s服务器主动发送消息 内容:%s' \
+                  % (hex(self.number), self.data)
+        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
+                     level=logging.INFO)
 
     def send_to_device(self, transport, id):
         try:
@@ -109,8 +111,6 @@ class LoginCase(BaseCase):
     def login_success(self, dev, transport):
         send_msg = ''.join(map(chr, self.startwith)) + chr(
             0x01) + chr(0x01) + ''.join(map(chr, self.endwith))
-        print('%s 登录成功' % dev.dev_id)
-        transport.transport.write(send_msg.encode())
         dev_info = {
             'dev_id': dev.dev_id,
             'name': dev.name,
@@ -123,21 +123,27 @@ class LoginCase(BaseCase):
             LocationCard.dev_id == dev.dev_id).first()
         location.connect = 1
         session.commit()
+        (host, port) = transport.transport.client
+        log_str = '设备 %s 登录成功 地址 %s:%s' \
+                  % (dev.dev_id, host, port)
+        write_logger('login.log', log_str, level=logging.INFO)
+        write_logger(dev.dev_id + '.log', log_str, level=logging.INFO)
+        transport.transport.write(send_msg.encode())
         return True
 
     def login_failure(self, dev_str, transport):
-        print('%s 登录失败' % dev_str)
         send_msg = ''.join(map(chr, self.startwith)) + chr(0x01) + chr(
             0x44) + ''.join(map(chr, self.endwith))
         transport.transport.write(send_msg.encode())
         transport.transport.loseConnection()
+        write_logger('login.log', '设备 ' + dev_str + ' 登录失败',
+                     level=logging.INFO)
         return False
 
     def check_dev(self):
         dev_str = ''
         for i in self.data_list[4:4 + 8]:
             dev_str += hex(i)[2:] if len(hex(i)[2:]) > 1 else '0' + hex(i)[2:]
-        print('dev_str', dev_str)
         dev = session.query(EmployeeInfoCard).filter(
             EmployeeInfoCard.dev_id == dev_str).all()
         if len(dev) > 1:
