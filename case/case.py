@@ -16,7 +16,7 @@ class HeartBeat(BaseCase):
 
     def act(self, transport):
         write_logger(transport.dev_info['dev_id'] + '.log',
-                     '协议%s心跳包' % hex(self.number),
+                     '协议 %s 心跳包' % hex(self.number),
                      level=logging.INFO)
         time_now = datetime.now()
         time_list = [time_now.year, time_now.month, time_now.day,
@@ -34,10 +34,10 @@ class HeartBeat(BaseCase):
         send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
             0x30)).encode() + time_bytes + ''.join(
             map(chr, self.endwith)).encode()
-        log_str = '协议:%s尝试设置时间 bytes字节串:%s 16进制字节串:%s' % (
-                hex(self.number), send_msg, send_msg.hex())
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+        # log_str = '协议%s尝试设置时间 bytes字节串:%s 16进制字节串:%s' % (
+        #         hex(self.number), send_msg, send_msg.hex())
+        # write_logger(transport.dev_info['dev_id'] + '.log', log_str,
+        #              level=logging.INFO)
         transport.transport.write(send_msg)
 
 
@@ -59,7 +59,7 @@ class GpsPositioning(BaseCase):
         self.update_to_location(data)
         self.insert_to_hisdata(data)
         self.server_response(transport)
-        log_str = '协议:%sGPS数据 经纬度:%sE%sN 定位时间:%s' \
+        log_str = '协议 %s GPS数据\t经纬度 %sE%sN\t定位时间 %s' \
                   % (
                       hex(self.number),
                       gps_longitude,
@@ -122,7 +122,7 @@ class DeviceStatus(BaseCase):
             'battery': self.data_list[4],
         }
         self.update_to_location(data)
-        log_str = '协议:%s状态更新 电量:%s' % (hex(self.number), data['battery'])
+        log_str = '协议 %s 状态更新\t电量 %s' % (hex(self.number), data['battery'])
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
 
@@ -150,7 +150,7 @@ class FactoryReset(BaseCase):
 
     def act(self, transport):
         self.factory_reset(transport)
-        log_str = '协议:%s恢复出厂' % (hex(self.number))
+        log_str = '协议 %s 恢复出厂' % (hex(self.number))
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
 
@@ -172,7 +172,7 @@ class DeviceTimeUpdate(BaseCase):
         )
         time_bytes = bytes().fromhex(time_str)
         self.set_time(transport, time_bytes)
-        log_str = '协议:%s更新时间' % (hex(self.number))
+        log_str = '协议 %s 更新时间' % (hex(self.number))
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
 
@@ -219,7 +219,7 @@ class WifiPositioning(BaseCase):
         self.insert_to_hosdata(data)
         self.update_to_location(data)
         self.server_response(transport)
-        log_str = '协议:%sWIFI数据 lng:%s lat:%s 时间:%s' \
+        log_str = '协议 %s WIFI数据\tlng %s lat %s\t时间 %s' \
                   % (
                       hex(self.number),
                       data['lng'],
@@ -309,7 +309,7 @@ class SetUploadIntervalBySms(BaseCase):
 
     def act(self, transport):
         self.server_ack(transport)
-        log_str = '协议:%s短信设置上传间隔' % (hex(self.number))
+        log_str = '协议 %s 短信设置上传间隔' % (hex(self.number))
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
 
@@ -320,7 +320,7 @@ class SetUploadIntervalBySms(BaseCase):
 class DeviceSleep(BaseCase):
 
     def act(self, transport):
-        log_str = '协议:%s设备休眠' % (hex(self.number))
+        log_str = '协议 %s 设备休眠' % (hex(self.number))
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)
         transport.transport.loseConnection()

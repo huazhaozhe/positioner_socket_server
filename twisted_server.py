@@ -22,8 +22,8 @@ class MyProtocal(Protocol):
 
     def connectionLost(self, reason):
         if self in handler.login_client:
-            handler.logout(self)
             handler.login_client.remove(self)
+            handler.logout(self)
         elif self in client:
             client.remove(self)
 

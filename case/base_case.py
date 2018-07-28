@@ -87,10 +87,10 @@ class ToSendCase():
     def act(self, transport, id):
         self.send_to_device(transport, id)
         if self.number == 0x00:
-            log_str = '协议:%s服务器发送未能理解的消息 内容:%s' \
+            log_str = '协议 %s 服务器发送未能理解的消息\t内容 %s' \
                       % (hex(self.number), self.data)
         else:
-            log_str = '协议:%s服务器主动发送消息 内容:%s' \
+            log_str = '协议 %s 服务器主动发送消息\t内容 %s' \
                       % (hex(self.number), self.data)
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
                      level=logging.INFO)

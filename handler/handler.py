@@ -74,7 +74,7 @@ class Handler():
                     break
             if flag:
                 write_logger(transport.dev_info['dev_id'] + '.log',
-                             '协议%s不能够解析 原始字节串:%s 10进制元组:%s'
+                             '协议 %s 不能够解析\t原始字节串 %s\t10进制元组 %s'
                              % (hex(data_tuple[3]), data, data_tuple),
                              level=logging.WARNING
                              )
@@ -110,6 +110,8 @@ class Handler():
             if dev_id not in self.msg_dict:
                 self.msg_dict[dev_id] = []
             for msg in msg_list:
+                if (msg.id, msg.msg) in self.msg_dict[msg.dev_id]:
+                    continue
                 self.msg_dict[msg.dev_id].append((msg.id, msg.msg))
         return len(msg_list)
 
@@ -117,9 +119,12 @@ class Handler():
         while self.msg_dict[transport.dev_info['dev_id']]:
             (id, msg) = self.msg_dict[transport.dev_info['dev_id']].pop(0)
             new_msg = msg.replace(' ', '').replace(':', '').replace('#', '')
-            for case in self.to_send_case:
-                if case.test(new_msg):
-                    case.act(transport, id)
+            if transport in self.login_client:
+                for case in self.to_send_case:
+                    if case.test(new_msg):
+                        case.act(transport, id)
+            else:
+                break
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]
         return True
@@ -137,14 +142,14 @@ class Handler():
                                                                         '')
                 if len(new_msg) % 2 != 0:
                     write_logger('handler.log',
-                                 'msg: %s 长度不正确, 放弃添加本条msg' % msg,
+                                 'msg %s 长度不正确, 放弃添加本条msg' % msg,
                                  level=logging.WARNING, log_debug=True)
                     continue
                 try:
                     bytes().fromhex(new_msg)
                 except:
                     write_logger('handler.log',
-                                 'msg: %s 不是16进制字节串, 放弃添加本条msg' % msg,
+                                 'msg %s 不是16进制字节串, 放弃添加本条msg' % msg,
                                  level=logging.WARNING, log_debug=True)
                     continue
                 msg_list.append(new_msg)
@@ -173,7 +178,7 @@ class Handler():
         location.last_time = datetime.now()
         session.commit()
         (host, port) = transport.transport.client
-        log_str = '设备 %s 注销 地址 %s:%s' \
+        log_str = '设备 %s 注销成功 地址 %s:%s' \
                   % (transport.dev_info['dev_id'], host, port)
         write_logger('login.log', log_str, level=logging.INFO)
         write_logger(transport.dev_info['dev_id'] + '.log', log_str,
