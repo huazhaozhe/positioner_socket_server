@@ -56,12 +56,12 @@ class BaseCase():
     def test(self, data_tuple, data):
         try:
             if not self.pretreatment(data_tuple):
-                return 0
+                return -1
             if data_tuple[3] != self.number:
                 return self.error['protocol']
             self.data_list = data_tuple
             self.data = data
-            return True
+            return 1
         except:
             return False
 

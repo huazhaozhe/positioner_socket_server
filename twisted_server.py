@@ -13,19 +13,19 @@ from socket_fun import write_logger
 
 handler = Handler(to_send_enable=True)
 handler.add_case()
-client = []
 
 
 class MyProtocal(Protocol):
     def connectionMade(self):
-        client.append(self)
+        write_logger('server.log', '客户端连接 %s:%s' % self.transport.client,
+                     log_debug=True)
 
     def connectionLost(self, reason):
         if self in handler.login_client:
             handler.login_client.remove(self)
             handler.logout(self)
-        elif self in client:
-            client.remove(self)
+        write_logger('server.log', '客户端断开 %s:%s' % self.transport.client,
+                     log_debug=True)
 
     def dataReceived(self, data):
         handler.handler(data, self)

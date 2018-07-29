@@ -71,18 +71,18 @@ class Handler():
             flag = 1
             for case in self.case:
                 test = case.test(data_tuple, data)
-                if test is True:
-                    case.act(transport)
+                if test == 1:
                     flag = 0
+                    case.act(transport)
                     break
-                elif test == 0:
+                elif test == -1:
                     write_logger(transport.dev_info['dev_id'] + '.log',
                                  '头尾检测失败\t原始字节串 %s\t10进制元组 %s'
                                  % (data, data_tuple),
                                  level=logging.ERROR
                                  )
                     break
-            if flag:
+            if flag and test != -1:
                 write_logger(transport.dev_info['dev_id'] + '.log',
                              '协议 %s 不能够解析\t原始字节串 %s\t10进制元组 %s'
                              % (hex(data_tuple[3]), data, data_tuple),
