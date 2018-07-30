@@ -11,6 +11,7 @@ import os
 import logging
 import socket
 from config import DEBUG, LOG_DIR as log_dir
+from logging.handlers import RotatingFileHandler
 
 
 def get_host_ip():
@@ -25,19 +26,45 @@ def get_host_ip():
     return ip
 
 
-logger = logging.getLogger('logger')
-log_formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+class Logger():
 
+    def __init__(self, log_dir=log_dir, maxBytes=100 * 1024 * 1024,
+                 backupCount=5):
+        self.log_formatter = logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s')
+        self.logger = logging.getLogger('logger')
+        self.DEBUG = DEBUG
+        self.log_dir = log_dir
+        self.maxBytes = maxBytes
+        self.backupCount = backupCount
 
-def write_logger(file_name, info, level=logging.INFO, log_debug=False):
-    logger.setLevel(level)
-    if DEBUG or log_debug:
+    def info_log(self, file_name, info, level=logging.INFO):
+        log_path = os.path.join(self.log_dir, file_name)
+        self.logger.setLevel(level)
+        rthandler = RotatingFileHandler(log_path, maxBytes=self.maxBytes,
+                                        backupCount=self.backupCount,
+                                        encoding='utf-8')
+        rthandler.setFormatter(self.log_formatter)
+        self.logger.addHandler(rthandler)
+        self.logger.log(msg=info, level=level)
+        self.logger.removeHandler(rthandler)
+
+    def error_log(self, file_name, info):
+        log_path = os.path.join(self.log_dir, file_name)
+        rthandler = RotatingFileHandler(log_path, maxBytes=self.maxBytes,
+                                        backupCount=self.backupCount,
+                                        encoding='utf-8')
+        rthandler.setFormatter(
+            logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+        self.logger = logging.getLogger('logger')
+        self.logger.addHandler(rthandler)
+        self.logger.exception(info)
+        self.logger.removeHandler(rthandler)
+
+    def std_log(self, info, level=logging.INFO):
         fh = logging.StreamHandler()
-    else:
-        log_path = os.path.join(log_dir, file_name)
-        fh = logging.FileHandler(log_path, encoding='utf-8')
-    # fh.setLevel(level)
-    fh.setFormatter(log_formatter)
-    logger.addHandler(fh)
-    logger.log(msg=info, level=level)
-    logger.removeHandler(fh)
+        fh.setFormatter(self.log_formatter)
+        self.logger.setLevel(level)
+        self.logger.addHandler(fh)
+        self.logger.log(msg=info, level=level)
+        self.logger.removeHandler(fh)

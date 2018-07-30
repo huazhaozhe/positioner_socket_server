@@ -15,9 +15,6 @@ from case.base_case import *
 class HeartBeat(BaseCase):
 
     def act(self, transport):
-        write_logger(transport.dev_info['dev_id'] + '.log',
-                     '协议 %s 心跳包' % hex(self.number),
-                     level=logging.INFO)
         time_now = datetime.now()
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
@@ -27,18 +24,11 @@ class HeartBeat(BaseCase):
                 if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
             )
         )
-        time_bytes = bytes().fromhex(time_str)
-        self.set_time(transport, time_bytes)
-
-    def set_time(self, transport, time_bytes):
-        send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
-            0x30)).encode() + time_bytes + ''.join(
-            map(chr, self.endwith)).encode()
-        # log_str = '协议%s尝试设置时间 bytes字节串:%s 16进制字节串:%s' % (
-        #         hex(self.number), send_msg, send_msg.hex())
-        # write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-        #              level=logging.INFO)
-        transport.transport.write(send_msg)
+        send_msg = self.startwith + '0730' + time_str + self.endwith
+        self.send_to_device(transport, send_msg)
+        log_str = '协议 %s 心跳包' % self.number
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
 
 class GpsPositioning(BaseCase):
@@ -58,16 +48,18 @@ class GpsPositioning(BaseCase):
         }
         self.update_to_location(data)
         self.insert_to_hisdata(data)
-        self.server_response(transport)
+        send_msg = self.startwith + '0010' + str(
+            binascii.b2a_hex(self.data[4:4 + 6]))[2:-1] + self.endwith
+        self.send_to_device(transport, send_msg)
         log_str = '协议 %s GPS数据\t经纬度 %sE%sN\t定位时间 %s' \
                   % (
-                      hex(self.number),
+                      self.number,
                       gps_longitude,
                       gps_latitude,
                       gps_date.strftime('%Y-%m-%d %H:%M:%S')
                   )
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
     def hexadecimal_to_sexagesimal(self, value):
         value = bytes_to_dec(value)
@@ -86,32 +78,38 @@ class GpsPositioning(BaseCase):
             lng=data['lng'],
             lat=data['lat']
         )
-        session.add(hisdata)
-        session.commit()
+        session = DBSession()
+        try:
+            session.add(hisdata)
+            session.commit()
+        except:
+            session.rollback()
+            log_str = '数据库错误\t设备 %s' % data['dev_id']
+            logger.error_log('error.log', log_str)
+        finally:
+            session.close()
 
     def update_to_location(self, data):
-        location = session.query(LocationCard).filter_by(
-            dev_id=data['dev_id']).all()
-        if len(location) > 1:
-            pass
-            # raise ValueError
-        elif len(location) == 1:
-            location = location[0]
-            location.time = data['time']
-            location.lng = data['lng']
-            location.lat = data['lat']
-            session.commit()
-        else:
-            pass
-            # raise ValueError
-
-    def server_response(self, transport):
-        send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
-            self.number) + ''.join(
-            map(chr, self.data_list[4:4 + 6])) + ''.join(
-            map(chr, self.endwith))
-        transport.transport.write(send_msg.encode())
-        return True
+        session = DBSession()
+        try:
+            location = session.query(LocationCard).filter_by(
+                dev_id=data['dev_id']).first()
+            if location:
+                location.time = data['time']
+                location.lng = data['lng']
+                location.lat = data['lat']
+                session.commit()
+            else:
+                log_str = '协议 %s location不存在设备 %s' % (
+                    self.number, data['dev_id'])
+                logger.info_log(data['dev_id'] + '.log', log_str,
+                                level=logging.WARNING)
+        except:
+            session.rollback()
+            log_str = '数据库错误\t设备 %s' % data['dev_id']
+            logger.error_log('error.log', log_str)
+        finally:
+            session.close()
 
 
 class DeviceStatus(BaseCase):
@@ -122,40 +120,40 @@ class DeviceStatus(BaseCase):
             'battery': self.data_list[4],
         }
         self.update_to_location(data)
-        log_str = '协议 %s 状态更新\t电量 %s' % (hex(self.number), data['battery'])
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+        log_str = '协议 %s 状态更新\t电量 %s' % (self.number, data['battery'])
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
     def update_to_location(self, data):
-        location = session.query(LocationCard).filter_by(
-            dev_id=data['dev_id']).all()
-        if len(location) > 1:
-            pass
-            # raise ValueError
-        elif len(location) == 1:
-            location = location[0]
-            location.battery = data['battery']
-            session.commit()
-        else:
-            pass
-            # raise ValueError
-
-    def set_heart_beat(self, transport, interval=0x03):
-        send_msg = ''.join(map(chr, self.startwith)) + chr(0x02) + chr(
-            self.number) + chr(interval) + ''.join(map(chr, self.endwith))
-        transport.transport.write(send_msg.encode())
+        session = DBSession()
+        try:
+            location = session.query(LocationCard).filter_by(
+                dev_id=data['dev_id']).first()
+            if location:
+                location = location[0]
+                location.battery = data['battery']
+                session.commit()
+            else:
+                log_str = '协议 %s location不存在设备 %s' % (
+                    self.number, data['dev_id'])
+                logger.info_log(data['dev_id'] + '.log', log_str,
+                                level=logging.WARNING)
+        except:
+            session.rollback()
+            log_str = '数据库错误\t设备 %s' % data['dev_id']
+            logger.error_log('error.log', log_str)
+        finally:
+            session.close()
 
 
 class FactoryReset(BaseCase):
 
     def act(self, transport):
-        self.factory_reset(transport)
-        log_str = '协议 %s 恢复出厂' % (hex(self.number))
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
-
-    def factory_reset(self, transport):
-        transport.transport.write(self.data)
+        send_msg = self.startwith + '0115' + self.endwith
+        self.send_to_device(transport, send_msg)
+        log_str = '协议 %s 恢复出厂' % self.number
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
 
 class DeviceTimeUpdate(BaseCase):
@@ -170,17 +168,11 @@ class DeviceTimeUpdate(BaseCase):
                 if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
             )
         )
-        time_bytes = bytes().fromhex(time_str)
-        self.set_time(transport, time_bytes)
-        log_str = '协议 %s 更新时间' % (hex(self.number))
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
-
-    def set_time(self, transport, time_bytes):
-        send_msg = (''.join(map(chr, self.startwith)) + chr(0x07) + chr(
-            self.number)).encode() + time_bytes + ''.join(
-            map(chr, self.endwith)).encode()
-        transport.transport.write(send_msg)
+        send_msg = self.startwith + '0730' + time_str + self.endwith
+        self.send_to_device(transport, send_msg)
+        log_str = '协议 %s 更新时间' % self.number
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
 
 class WifiPositioning(BaseCase):
@@ -218,16 +210,18 @@ class WifiPositioning(BaseCase):
                                         lbs_dict['cellid']]))
         self.insert_to_hosdata(data)
         self.update_to_location(data)
-        self.server_response(transport)
+        send_msg = self.startwith + '00' + self.number + date_time.strftime(
+            '%y%m%d%H%M%S') + self.endwith
+        self.send_to_device(transport, send_msg)
         log_str = '协议 %s WIFI数据\tlng %s lat %s\t时间 %s' \
                   % (
-                      hex(self.number),
+                      self.number,
                       data['lng'],
                       data['lat'],
                       data['time'].strftime('%Y-%m-%d %H:%M:%S')
                   )
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
     def get_wifi_mac(self, dev_id, date_time):
         mac_dict = {
@@ -255,22 +249,28 @@ class WifiPositioning(BaseCase):
         return lbs_dict
 
     def update_to_location(self, data):
-        location = session.query(LocationCard).filter_by(
-            dev_id=data['dev_id']).all()
-        if len(location) > 1:
-            pass
-            # raise ValueError
-        elif len(location) == 1:
-            location = location[0]
-            location.time = data['time']
-            if data['lng']:
-                location.lng = data['lng']
-            if data['lat']:
-                location.lat = data['lat']
-            session.commit()
-        else:
-            pass
-            # raise ValueError
+        session = DBSession()
+        try:
+            location = session.query(LocationCard).filter_by(
+                dev_id=data['dev_id']).first()
+            if location:
+                location.time = data['time']
+                if data['lng']:
+                    location.lng = data['lng']
+                if data['lat']:
+                    location.lat = data['lat']
+                session.commit()
+            else:
+                log_str = '协议 %s location不存在设备 %s' % (
+                    self.number, data['dev_id'])
+                logger.info_log(data['dev_id'] + '.log', log_str,
+                                level=logging.WARNING)
+        except:
+            session.rollback()
+            log_str = '数据库错误\t设备 %s' % data['dev_id']
+            logger.error_log('error.log', log_str)
+        finally:
+            session.close()
 
     def insert_to_hosdata(self, data):
         hisdata = HisData(
@@ -280,8 +280,16 @@ class WifiPositioning(BaseCase):
             lng=data['lng'],
             lat=data['lat']
         )
-        session.add(hisdata)
-        session.commit()
+        session = DBSession()
+        try:
+            session.add(hisdata)
+            session.commit()
+        except:
+            session.rollback()
+            log_str = '数据库错误\t设备 %s' % data['dev_id']
+            logger.error_log('error.log', log_str)
+        finally:
+            session.close()
 
     def wifi_date_time(self, date_time):
         date_time = str(binascii.b2a_hex(date_time))[2:-1]
@@ -292,14 +300,6 @@ class WifiPositioning(BaseCase):
             date_time_list[3:])
         return datetime.strptime(date_time_str, '%y-%m-%d %H:%M:%S')
 
-    def server_response(self, transport):
-        send_msg = ''.join(map(chr, self.startwith)) + chr(0x00) + chr(
-            self.number) + ''.join(
-            map(chr, self.data_list[4:4 + 6])) + ''.join(
-            map(chr, self.endwith))
-        transport.transport.write(send_msg.encode())
-        return True
-
 
 class OffWifiPositioning(WifiPositioning):
     pass
@@ -308,21 +308,19 @@ class OffWifiPositioning(WifiPositioning):
 class SetUploadIntervalBySms(BaseCase):
 
     def act(self, transport):
-        self.server_ack(transport)
-        log_str = '协议 %s 短信设置上传间隔' % (hex(self.number))
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
-
-    def server_ack(self, transport):
-        transport.transport.write(self.data)
+        send_msg = str(binascii.b2a_hex(self.data))[2:-1]
+        self.send_to_device(transport, send_msg)
+        log_str = '协议 %s 短信设置上传间隔' % self.number
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
 
 
 class DeviceSleep(BaseCase):
 
     def act(self, transport):
-        log_str = '协议 %s 设备休眠' % (hex(self.number))
-        write_logger(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+        log_str = '协议 %s 设备休眠' % self.number
+        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                        level=logging.INFO)
         transport.transport.loseConnection()
 
 
