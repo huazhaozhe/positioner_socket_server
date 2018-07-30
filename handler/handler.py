@@ -76,17 +76,19 @@ class Handler():
                     break
                 elif test == -1:
                     logger.info_log(transport.dev_info['dev_id'] + '.log',
-                                 '头尾检测失败\t原始字节串 %s\t10进制元组 %s'
-                                 % (data, data_tuple),
-                                 level=logging.ERROR
-                                 )
+                                    '头尾检测失败\t原始字节串 %s\t10进制元组 %s'
+                                    % (data, data_tuple),
+                                    level=logging.ERROR
+                                    )
                     break
             if flag and test != -1:
                 logger.info_log(transport.dev_info['dev_id'] + '.log',
-                             '协议 %s 不能够解析\t原始字节串 %s\t10进制元组 %s'
-                             % (hex(data_tuple[3]), data, data_tuple),
-                             level=logging.WARNING
-                             )
+                                '协议 %s 不能够解析\t原始字节串 %s\t10进制元组 %s'
+                                % (
+                                str(binascii.b2a_hex(data[3:4]))[2:-1], data,
+                                data_tuple),
+                                level=logging.WARNING
+                                )
 
         elif self.login_case.test(data_tuple, data) == 1:
             if self.login_case.act(transport):
@@ -163,15 +165,15 @@ class Handler():
                                                                         '')
                 if len(new_msg) % 2 != 0:
                     logger.info_log('handler.log',
-                                 'msg %s 长度不正确, 放弃添加本条msg' % msg,
-                                 level=logging.WARNING, log_debug=True)
+                                    'msg %s 长度不正确, 放弃添加本条msg' % msg,
+                                    level=logging.WARNING, log_debug=True)
                     continue
                 try:
                     bytes().fromhex(new_msg)
                 except:
                     logger.info_log('handler.log',
-                                 'msg %s 不是16进制字节串, 放弃添加本条msg' % msg,
-                                 level=logging.WARNING, log_debug=True)
+                                    'msg %s 不是16进制字节串, 放弃添加本条msg' % msg,
+                                    level=logging.WARNING, log_debug=True)
                     continue
                 msg_list.append(new_msg)
             if msg_data[0] == 'all':
@@ -181,8 +183,8 @@ class Handler():
             for id in id_list:
                 if id not in dev_id_list:
                     logger.info_log('handler.log',
-                                 '数据库中不存在设备ID %s, 但任然添加至发送数据库中' % id,
-                                 level=logging.WARNING, log_debug=True)
+                                    '数据库中不存在设备ID %s, 但任然添加至发送数据库中' % id,
+                                    level=logging.WARNING, log_debug=True)
                 for msg in msg_list:
                     new_msg = ToSendModel(dev_id=id, msg=msg,
                                           created_at=datetime.now(), status=0)
@@ -217,5 +219,5 @@ class Handler():
                   % (transport.dev_info['dev_id'], host, port)
         logger.info_log('login.log', log_str, level=logging.INFO)
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
-                     level=logging.INFO)
+                        level=logging.INFO)
         del transport.dev_info

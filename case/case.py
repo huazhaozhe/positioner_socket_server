@@ -130,7 +130,6 @@ class DeviceStatus(BaseCase):
             location = session.query(LocationCard).filter_by(
                 dev_id=data['dev_id']).first()
             if location:
-                location = location[0]
                 location.battery = data['battery']
                 session.commit()
             else:

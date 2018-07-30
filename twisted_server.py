@@ -33,5 +33,5 @@ if __name__ == '__main__':
     factory = Factory()
     factory.protocol = MyProtocal
     info = reactor.listenTCP(server_port, factory)
-    logger.std_log('server ar port %s' % info.port)
+    logger.std_log('sever port %s' % info.port)
     reactor.run()
