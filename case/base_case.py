@@ -210,5 +210,5 @@ class LoginCase(BaseCase):
 
 class ToSendMsgNoNumber(ToSendCase):
 
-    def test(self):
+    def test(self, data):
         return True
