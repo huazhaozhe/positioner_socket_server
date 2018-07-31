@@ -24,11 +24,11 @@ class HeartBeat(BaseCase):
                 if len(hex(x)[2:]) % 2 == 0 else '0' + hex(x)[2:], time_list
             )
         )
-        send_msg = self.startwith + '0730' + time_str + self.endwith
-        self.send_to_device(transport, send_msg)
         log_str = '协议 %s 心跳包' % self.number
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
+        send_msg = self.startwith + '0730' + time_str + self.endwith
+        self.send_to_device(transport, send_msg, log=False)
 
 
 class GpsPositioning(BaseCase):

@@ -69,12 +69,13 @@ class BaseCase():
     def act(self, transport):
         pass
 
-    def send_to_device(self, transport, msg):
+    def send_to_device(self, transport, msg, log=True):
         try:
             transport.transport.write(bytes().fromhex(msg))
-            log_str = '协议 %s 服务器回复消息成功\t内容 %s' % (self.number, msg)
-            logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
-                            level=logging.INFO)
+            if log:
+                log_str = '协议 %s 服务器回复消息成功\t内容 %s' % (self.number, msg)
+                logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                                level=logging.INFO)
             return True
         except:
             log_str = '协议 %s 服务器回复消息失败\t内容 %s' % (self.number, msg)
@@ -84,23 +85,6 @@ class BaseCase():
                       % (self.number, msg, transport.dev_info['dev_id'])
             logger.error_log('error.log', log_str)
             return False
-
-    def database_update(self):
-        pass
-        # session = DBSession()
-        # try:
-        #     msg = session.query(ToSendModel).filter(
-        #         ToSendModel.id == id).first()
-        #     msg.status = 1
-        #     msg.sent_at = datetime.now()
-        #     session.commit()
-        # except:
-        #     session.rollback()
-        #     log_str = '数据库错误\t设备 %s' \
-        #               % (transport.dev_info['dev_id'])
-        #     logger.error_log('error.log', log_str)
-        # finally:
-        #     session.close()
 
 
 class ToSendCase():
