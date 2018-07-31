@@ -103,15 +103,12 @@ class ToSendCase():
             return False
 
     def act(self, transport, id):
-        self.send_to_device(transport, id)
         if self.number == '00':
             log_str = '协议 %s 服务器发送未能理解的消息\t内容 %s' \
                       % (self.number, self.data)
-        else:
-            log_str = '协议 %s 服务器主动发送消息\t内容 %s' \
-                      % (self.number, self.data)
-        logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
-                        level=logging.INFO)
+            logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
+                            level=logging.WARNING)
+        self.send_to_device(transport, id)
 
     def send_to_device(self, transport, id):
         try:
@@ -197,7 +194,7 @@ class LoginCase(BaseCase):
             else:
                 return (False, dev_str)
         except:
-            log_str = '数据库错误\t设备 %s' % (dev_str)
+            log_str = '数据库错误\t设备 %s' % dev_str
             logger.error_log('error.log', log_str)
             return (False, dev_str)
         finally:
