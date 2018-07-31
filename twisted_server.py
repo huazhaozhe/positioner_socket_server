@@ -12,7 +12,7 @@ from config import server_port
 from socket_fun import Logger
 
 handler = Handler(to_send_enable=True)
-handler.add_case()
+# handler.add_case()
 logger = Logger()
 
 class MyProtocal(Protocol):
@@ -26,7 +26,7 @@ class MyProtocal(Protocol):
         logger.std_log('客户端断开 %s:%s' % self.transport.client)
 
     def dataReceived(self, data):
-        handler.handler(data, self)
+        handler.handler(self, data)
 
 
 if __name__ == '__main__':

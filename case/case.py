@@ -14,7 +14,7 @@ from case.base_case import *
 
 class HeartBeat(BaseCase):
 
-    def act(self, transport):
+    def act(self, transport, data):
         time_now = datetime.now()
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
@@ -29,27 +29,29 @@ class HeartBeat(BaseCase):
                         level=logging.INFO)
         send_msg = self.startwith + '0730' + time_str + self.endwith
         self.send_to_device(transport, send_msg, log=False)
+        return True
 
 
 class GpsPositioning(BaseCase):
 
-    def act(self, transport):
-        gps_date = self.gps_date_time(self.data_list[4:4 + 6])
+    def act(self, transport, data):
+        data_tuple = tuple(data)
+        gps_date = self.gps_date_time(data_tuple[4:4 + 6])
         gps_longitude = self.hexadecimal_to_sexagesimal(
-            self.data_list[11:11 + 4])
+            data_tuple[11:11 + 4])
         gps_latitude = self.hexadecimal_to_sexagesimal(
-            self.data_list[11 + 4:11 + 8])
-        data = {
+            data_tuple[11 + 4:11 + 8])
+        gps_data = {
             'dev_id': transport.dev_info['dev_id'],
             'name': transport.dev_info['name'],
             'time': gps_date,
             'lng': gps_longitude,
             'lat': gps_latitude
         }
-        self.update_to_location(data)
-        self.insert_to_hisdata(data)
+        self.update_to_location(gps_data)
+        self.insert_to_hisdata(gps_data)
         send_msg = self.startwith + '0010' + str(
-            binascii.b2a_hex(self.data[4:4 + 6]))[2:-1] + self.endwith
+            binascii.b2a_hex(data[4:4 + 6]))[2:-1] + self.endwith
         self.send_to_device(transport, send_msg)
         log_str = '协议 %s GPS数据\t经纬度 %sE%sN\t定位时间 %s' \
                   % (
@@ -114,13 +116,14 @@ class GpsPositioning(BaseCase):
 
 class DeviceStatus(BaseCase):
 
-    def act(self, transport):
-        data = {
+    def act(self, transport, data):
+        data_tuple = tuple(data)
+        status_data = {
             'dev_id': transport.dev_info['dev_id'],
-            'battery': self.data_list[4],
+            'battery': data_tuple[4],
         }
-        self.update_to_location(data)
-        log_str = '协议 %s 状态更新\t电量 %s' % (self.number, data['battery'])
+        self.update_to_location(status_data)
+        log_str = '协议 %s 状态更新\t电量 %s' % (self.number, status_data['battery'])
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
 
@@ -147,7 +150,7 @@ class DeviceStatus(BaseCase):
 
 class FactoryReset(BaseCase):
 
-    def act(self, transport):
+    def act(self, transport, data):
         send_msg = self.startwith + '0115' + self.endwith
         self.send_to_device(transport, send_msg)
         log_str = '协议 %s 恢复出厂' % self.number
@@ -157,7 +160,7 @@ class FactoryReset(BaseCase):
 
 class DeviceTimeUpdate(BaseCase):
 
-    def act(self, transport):
+    def act(self, transport, data):
         time_now = datetime.now() - timedelta(hours=8)
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
@@ -184,31 +187,32 @@ class WifiPositioning(BaseCase):
             'protocol': False,
         }
 
-    def act(self, transport):
+    def act(self, transport, data):
+        data_tuple = tuple(data)
         dev_id = transport.dev_info['dev_id']
-        date_time = self.wifi_date_time(self.data[4:4 + 6])
-        data = {
+        date_time = self.wifi_date_time(data[4:4 + 6])
+        wifi_data = {
             'dev_id': transport.dev_info['dev_id'],
             'name': transport.dev_info['name'],
             'lng': None,
             'lat': None,
             'time': date_time
         }
-        if self.data_list[2] > 0:
-            mac_dict = self.get_wifi_mac(dev_id, date_time)
+        if data_tuple[2] > 0:
+            mac_dict = self.get_wifi_mac(data_tuple, dev_id, date_time)
             transport.dev_info['mac_dict'] = mac_dict
-            data['lng'] = 'wifi#' + mac_dict['bssid']
-        lbs_offset = 10 + self.data_list[2] * 7
-        lbs_num = self.data_list[lbs_offset]
+            wifi_data['lng'] = 'wifi#' + mac_dict['bssid']
+        lbs_offset = 10 + data_tuple[2] * 7
+        lbs_num = data_tuple[lbs_offset]
         if lbs_num > 0:
-            lbs_dict = self.get_lbs(dev_id, date_time, lbs_num, lbs_offset)
+            lbs_dict = self.get_lbs(data_tuple, dev_id, date_time, lbs_num, lbs_offset)
             transport.dev_info['lbs_dict'] = lbs_dict
-            data['lat'] = '#'.join(map(str,
+            wifi_data['lat'] = '#'.join(map(str,
                                        ['lbs', lbs_dict['mcc'],
                                         lbs_dict['mnc'], lbs_dict['lac'],
                                         lbs_dict['cellid']]))
-        self.insert_to_hosdata(data)
-        self.update_to_location(data)
+        self.insert_to_hosdata(wifi_data)
+        self.update_to_location(wifi_data)
         send_msg = self.startwith + '00' + self.number + date_time.strftime(
             '%y%m%d%H%M%S') + self.endwith
         self.send_to_device(transport, send_msg)
@@ -222,27 +226,27 @@ class WifiPositioning(BaseCase):
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
 
-    def get_wifi_mac(self, dev_id, date_time):
+    def get_wifi_mac(self, data_tuple, dev_id, date_time):
         mac_dict = {
             'dev_id': dev_id,
-            'mac_num': self.data_list[2],
+            'mac_num': data_tuple[2],
             'bssid': ':'.join(
-                map(lambda x: hex(x)[2:], self.data_list[10:16])),
-            'rssi': self.data_list[16],
+                map(lambda x: hex(x)[2:], data_tuple[10:16])),
+            'rssi': data_tuple[16],
             'time': date_time,
         }
         return mac_dict
 
-    def get_lbs(self, dev_id, date_time, lbs_num, lbs_offset):
+    def get_lbs(self, data_tuple, dev_id, date_time, lbs_num, lbs_offset):
         lbs_dict = {
             'dev_id': dev_id,
             'lbs_num': lbs_num,
-            'mcc': bytes_to_dec(self.data_list[lbs_offset + 1:lbs_offset + 3]),
-            'mnc': self.data_list[lbs_offset + 3],
-            'lac': bytes_to_dec(self.data_list[lbs_offset + 4:lbs_offset + 6]),
+            'mcc': bytes_to_dec(data_tuple[lbs_offset + 1:lbs_offset + 3]),
+            'mnc': data_tuple[lbs_offset + 3],
+            'lac': bytes_to_dec(data_tuple[lbs_offset + 4:lbs_offset + 6]),
             'cellid': bytes_to_dec(
-                self.data_list[lbs_offset + 6:lbs_offset + 8]),
-            'mciss': self.data_list[lbs_offset + 8],
+                data_tuple[lbs_offset + 6:lbs_offset + 8]),
+            'mciss': data_tuple[lbs_offset + 8],
             'time': date_time,
         }
         return lbs_dict
@@ -306,8 +310,8 @@ class OffWifiPositioning(WifiPositioning):
 
 class SetUploadIntervalBySms(BaseCase):
 
-    def act(self, transport):
-        send_msg = str(binascii.b2a_hex(self.data))[2:-1]
+    def act(self, transport, data):
+        send_msg = str(binascii.b2a_hex(data))[2:-1]
         self.send_to_device(transport, send_msg)
         log_str = '协议 %s 短信设置上传间隔' % self.number
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
@@ -316,7 +320,7 @@ class SetUploadIntervalBySms(BaseCase):
 
 class DeviceSleep(BaseCase):
 
-    def act(self, transport):
+    def act(self, transport, data):
         log_str = '协议 %s 设备休眠' % self.number
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)

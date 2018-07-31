@@ -12,6 +12,7 @@ import binascii
 from datetime import datetime
 from orm.orm import *
 from socket_fun import Logger
+from twisted.internet import defer
 
 logger = Logger()
 
@@ -54,19 +55,19 @@ class BaseCase():
             return False
         return True
 
-    def test(self, data_tuple, data):
+    def test(self, data):
         try:
             if not self.pretreatment(data):
                 return -1
             if data[3:4] != bytes().fromhex(self.number):
                 return self.error['protocol']
-            self.data_list = data_tuple
-            self.data = data
+            # self.data_list = data_tuple
+            # self.data = data
             return 1
         except:
             return False
 
-    def act(self, transport):
+    def act(self, transport, data):
         pass
 
     def send_to_device(self, transport, msg, log=True):
@@ -95,36 +96,36 @@ class ToSendCase():
     def test(self, data):
         try:
             if data[6:8] == self.number:
-                self.data = data
+                # self.data = data
                 return True
             else:
                 return False
         except:
             return False
 
-    def act(self, transport, id):
+    def act(self, transport, id, data):
         if self.number == '00':
             log_str = '协议 %s 服务器发送未能理解的消息\t内容 %s' \
-                      % (self.number, self.data)
+                      % (self.number, data)
             logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                             level=logging.WARNING)
-        self.send_to_device(transport, id)
+        self.send_to_device(transport, id, data)
 
-    def send_to_device(self, transport, id):
+    def send_to_device(self, transport, id, data):
         try:
-            transport.transport.write(bytes().fromhex(self.data))
+            transport.transport.write(bytes().fromhex(data))
             log_str = '协议 %s 服务器主动发送消息成功\t内容 %s ID %s' % (
-                self.number, self.data, id)
+                self.number, data, id)
             logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                             level=logging.INFO)
         except:
             log_str = '协议 %s 服务器回复消息失败\t内容 %s ID %s' \
-                      % (self.number, self.data, id)
+                      % (self.number, data, id)
             logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                             level=logging.WARNING)
             log_str = '协议 %s 服务器发主动送消息错误\t内容 %s ID%s\t设备 %s' \
                       % (
-                      self.number, self.data, id, transport.dev_info['dev_id'])
+                      self.number, data, id, transport.dev_info['dev_id'])
             logger.error_log('error.log', log_str)
         session = DBSession()
         try:
@@ -183,8 +184,8 @@ class LoginCase(BaseCase):
         logger.info_log('login.log', log_str, level=logging.WARNING)
         return False
 
-    def check_dev(self):
-        dev_str = str(binascii.b2a_hex(self.data[4:-3]))[2:-1]
+    def check_dev(self, data):
+        dev_str = str(binascii.b2a_hex(data[4:-3]))[2:-1]
         session = DBSession()
         try:
             dev = session.query(EmployeeInfoCard).filter(
@@ -200,8 +201,8 @@ class LoginCase(BaseCase):
         finally:
             session.close()
 
-    def act(self, transport):
-        dev_checked = self.check_dev()
+    def act(self, transport, data):
+        dev_checked = self.check_dev(data)
         if dev_checked[0]:
             return self.login_success(dev_checked[1], transport)
         else:
@@ -211,5 +212,5 @@ class LoginCase(BaseCase):
 class ToSendMsgNoNumber(ToSendCase):
 
     def test(self, data):
-        self.data = data
+        # self.data = data
         return True

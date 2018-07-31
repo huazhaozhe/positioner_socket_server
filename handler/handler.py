@@ -8,13 +8,14 @@
 
 from case.case import *
 from config import DEBUG
+from twisted.internet import defer
 
 startwith = '7878'
 endwith = '0D0A'
 
 login_case = LoginCase(number='01', length=0x0a, startwith=startwith,
                        endwith=endwith)
-case = [
+receive_case = [
     HeartBeat(number='08', length=0x01, startwith=startwith,
               endwith=endwith),
     GpsPositioning(number='10', length=0x12, startwith=startwith,
@@ -51,13 +52,13 @@ class Handler():
         self.to_send_enable = to_send_enable
         self.msg_dict = {}
 
-    def add_case(self, login_case=login_case, case=case,
-                 to_send_case=to_send_case):
-        self.login_case = login_case
-        self.case = case
-        self.to_send_case = to_send_case
+    # def add_case(self, login_case=login_case, case=case,
+    #              to_send_case=to_send_case):
+    #     self.login_case = login_case
+    #     self.case = case
+    #     self.to_send_case = to_send_case
 
-    def handler(self, data, transport):
+    def handler(self, transport, data):
         try:
             data_tuple = tuple(data)
         except:
@@ -68,11 +69,11 @@ class Handler():
             transport.dev_info['last_time'] = time.strftime(
                 '%Y-%m-%d %H:%M:%S')
             flag = 1
-            for case in self.case:
-                test = case.test(data_tuple, data)
+            for case in receive_case:
+                test = case.test(data)
                 if test == 1:
                     flag = 0
-                    case.act(transport)
+                    case.act(transport, data)
                     break
                 elif test == -1:
                     logger.info_log(transport.dev_info['dev_id'] + '.log',
@@ -91,8 +92,8 @@ class Handler():
                                 level=logging.WARNING
                                 )
 
-        elif self.login_case.test(data_tuple, data) == 1:
-            if self.login_case.act(transport):
+        elif login_case.test(data) == 1:
+            if login_case.act(transport, data):
                 for tcp in self.login_client:
                     if tcp.dev_info['dev_id'] == transport.dev_info['dev_id']:
                         tcp.transport.loseConnection()
@@ -103,16 +104,17 @@ class Handler():
             dev = session.query(EmployeeInfoCard).filter(
                 EmployeeInfoCard.dev_id == '0123456789012345').one()
             session.close()
-            self.login_case.login_success(dev, transport)
+            login_case.login_success(dev, transport)
             self.login_client.append(transport)
 
         if transport in self.login_client:
             if self.to_send_enable:
                 if self.to_send_init(transport.dev_info['dev_id']):
-                    self.to_send_device(transport)
+                     self.to_send_device(transport)
             return True
-
-        transport.transport.loseConnection()
+        else:
+            transport.transport.loseConnection()
+            return False
         # transport.transport.abortConnection()
 
     def to_send_init(self, dev_id):
@@ -143,9 +145,9 @@ class Handler():
             (id, msg) = self.msg_dict[transport.dev_info['dev_id']].pop(0)
             new_msg = msg.replace(' ', '').replace(':', '').replace('#', '')
             if transport in self.login_client:
-                for case in self.to_send_case:
+                for case in to_send_case:
                     if case.test(new_msg):
-                        case.act(transport, id)
+                        case.act(transport, id, new_msg)
                         break
             else:
                 transport.transport.loseConnection()
