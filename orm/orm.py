@@ -37,7 +37,8 @@ employeeinfo_card = Table('employeeinfo_card', metadata,
                           Column('area', String(20), nullable=True),
                           Column('worktime', String(20), nullable=True),
                           Column('work_area_detailed', String(30),
-                                 nullable=True))
+                                 nullable=True),
+                          Column('note', String(300), nullable=True))
 
 
 class EmployeeInfoCard(Base):
@@ -51,6 +52,7 @@ class EmployeeInfoCard(Base):
     area = Column(String(20), default='bc', nullable=True)
     worktime = Column(String(20), nullable=True)
     work_area_detailed = Column(String(30), nullable=True)
+    note = Column(String(300), nullable=True)
 
 
 hisdata = Table('hisdata', metadata,
@@ -87,7 +89,8 @@ location_card = Table('location_card', metadata,
                       Column('connect', Integer, nullable=True, index=True),
                       Column('battery', Integer, nullable=True),
                       Column('link', String(5), nullable=True),
-                      Column('last_time', DateTime, nullable=True))
+                      Column('last_time', DateTime, nullable=True),
+                      Column('note', String(300), nullable=True))
 
 
 class LocationCard(Base):
@@ -104,6 +107,7 @@ class LocationCard(Base):
     battery = Column(Integer, nullable=True)
     link = Column(String(5), nullable=True)
     last_time = Column(DateTime, nullable=True)
+    note = Column(String(300), nullable=True)
 
 
 to_send_device = Table('to_send_device', metadata,
@@ -114,7 +118,8 @@ to_send_device = Table('to_send_device', metadata,
                        Column('status', Integer, default=0, nullable=False,
                               index=True),
                        Column('created_at', DateTime, nullable=True),
-                       Column('sent_at', DateTime, nullable=True))
+                       Column('sent_at', DateTime, nullable=True),
+                       Column('note', String(300), nullable=True))
 
 
 class ToSendModel(Base):
@@ -126,6 +131,7 @@ class ToSendModel(Base):
     status = Column(Integer, default=0, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.now, nullable=True)
     sent_at = Column(DateTime, nullable=True)
+    note = Column(String(300), nullable=True)
 
 
 DBSession = sessionmaker(bind=engine)
