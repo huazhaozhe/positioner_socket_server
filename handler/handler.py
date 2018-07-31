@@ -125,9 +125,9 @@ class Handler():
                 if dev_id not in self.msg_dict:
                     self.msg_dict[dev_id] = []
                 for msg in msg_list:
-                    if (msg.id, msg.msg) in self.msg_dict[msg.dev_id]:
+                    if (msg.id, msg.msg) in self.msg_dict[dev_id]:
                         continue
-                    self.msg_dict[msg.dev_id].append((msg.id, msg.msg))
+                    self.msg_dict[dev_id].append((msg.id, msg.msg))
             return len(msg_list)
         except:
             log_str = '数据库错误\t设备 %s' % dev_id
@@ -145,7 +145,9 @@ class Handler():
                 for case in self.to_send_case:
                     if case.test(new_msg):
                         case.act(transport, id)
+                        break
             else:
+                transport.transport.loseConnection()
                 break
         if len(self.msg_dict[transport.dev_info['dev_id']]) == 0:
             del self.msg_dict[transport.dev_info['dev_id']]

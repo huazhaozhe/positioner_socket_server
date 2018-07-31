@@ -113,18 +113,18 @@ class ToSendCase():
     def send_to_device(self, transport, id):
         try:
             transport.transport.write(bytes().fromhex(self.data))
-            log_str = '协议 %s 服务器主动发送消息成功\t内容 %s' % (
-                self.number, self.data)
+            log_str = '协议 %s 服务器主动发送消息成功\t内容 %s ID %s' % (
+                self.number, self.data, id)
             logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                             level=logging.INFO)
         except:
-            log_str = '协议 %s 服务器回复消息失败\t内容 %s' \
-                      % (self.number, self.data)
+            log_str = '协议 %s 服务器回复消息失败\t内容 %s ID %s' \
+                      % (self.number, self.data, id)
             logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                             level=logging.WARNING)
-            log_str = '协议 %s 服务器发主动送消息错误\t内容 %s id%s\t设备 %s' \
-                      % (self.number, self.data, id,
-                         transport.dev_info['dev_id'])
+            log_str = '协议 %s 服务器发主动送消息错误\t内容 %s ID%s\t设备 %s' \
+                      % (
+                      self.number, self.data, id, transport.dev_info['dev_id'])
             logger.error_log('error.log', log_str)
         session = DBSession()
         try:
