@@ -83,10 +83,11 @@ class Handler():
                     break
             if flag and test != -1:
                 logger.info_log(transport.dev_info['dev_id'] + '.log',
-                                '协议 %s 不能够解析\t原始字节串 %s\t10进制元组 %s'
+                                '协议 %s 不能够解析\t16进制字节串 %s 原始字节串 %s 10进制元组 %s'
                                 % (
-                                str(binascii.b2a_hex(data[3:4]))[2:-1], data,
-                                data_tuple),
+                                    str(binascii.b2a_hex(data[3:4]))[2:-1],
+                                    str(binascii.b2a_hex(data))[2:-1], data,
+                                    data_tuple),
                                 level=logging.WARNING
                                 )
 
