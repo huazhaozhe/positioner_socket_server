@@ -161,7 +161,7 @@ class FactoryReset(BaseCase):
 class DeviceTimeUpdate(BaseCase):
 
     def act(self, transport, data):
-        time_now = datetime.now() - timedelta(hours=8)
+        time_now = datetime.now()
         time_list = [time_now.year, time_now.month, time_now.day,
                      time_now.hour, time_now.minute, time_now.second]
         time_str = ''.join(

@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 from sqlalchemy import String, Column, create_engine, Float, Integer, MetaData, \
     Table, DateTime
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 from config import mysql_conf, sql_echo
 
@@ -134,5 +134,6 @@ class ToSendModel(Base):
     note = Column(String(300), nullable=True)
 
 
-DBSession = sessionmaker(bind=engine)
 metadata.create_all(engine)
+session_factory = sessionmaker(bind=engine)
+DBSession = scoped_session(session_factory)

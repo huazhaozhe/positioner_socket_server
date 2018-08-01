@@ -5,7 +5,7 @@
 # @FileName : twisted_server.py
 # @Project  : PyCharm
 
-from twisted.internet import reactor, threads
+from twisted.internet import reactor, threads, defer
 from twisted.internet.protocol import Protocol, Factory
 from handler.handler import Handler
 from config import server_port
@@ -26,8 +26,13 @@ class MyProtocal(Protocol):
         logger.std_log('客户端断开 %s:%s' % self.transport.client)
 
     def dataReceived(self, data):
-        d = threads.deferToThread(handler.handler, self, data)
+        d = self.handler(data)
         d.addCallback(self.callback)
+
+    def handler(self, line):
+        d = defer.Deferred()
+        reactor.callInThread(handler.handler, self, line)
+        return d
 
     def callback(self, result):
         pass
