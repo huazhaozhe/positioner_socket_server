@@ -219,9 +219,9 @@ class WifiPositioning(BaseCase):
         log_str = '协议 %s WIFI数据\tlng %s lat %s\t时间 %s' \
                   % (
                       self.number,
-                      data['lng'],
-                      data['lat'],
-                      data['time'].strftime('%Y-%m-%d %H:%M:%S')
+                      wifi_data['lng'],
+                      wifi_data['lat'],
+                      wifi_data['time'].strftime('%Y-%m-%d %H:%M:%S')
                   )
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
