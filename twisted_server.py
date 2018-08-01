@@ -5,8 +5,7 @@
 # @FileName : twisted_server.py
 # @Project  : PyCharm
 
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred
+from twisted.internet import reactor, threads
 from twisted.internet.protocol import Protocol, Factory
 from handler.handler import Handler
 from config import server_port
@@ -14,7 +13,7 @@ from socket_fun import Logger
 
 handler = Handler(to_send_enable=True)
 logger = Logger()
-d = Deferred()
+
 
 class MyProtocal(Protocol):
     def connectionMade(self):
@@ -27,15 +26,10 @@ class MyProtocal(Protocol):
         logger.std_log('客户端断开 %s:%s' % self.transport.client)
 
     def dataReceived(self, data):
+        d = threads.deferToThread(handler.handler, self, data)
+        d.addCallback(self.callback)
 
-        reactor.callInThread(self.handle, data)
-
-
-    def handle(self, line):
-        handler.handler(self, line)
-        reactor.callFromThread(self.callfrom)
-
-    def callfrom(self):
+    def callback(self, result):
         pass
 
 
