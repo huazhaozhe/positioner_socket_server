@@ -70,7 +70,7 @@ class BaseCase():
     def act(self, transport, data):
         pass
 
-    def send_to_device(self, transport, msg, log=True):
+    def send_to_device(self, transport, msg, log=False):
         try:
             transport.transport.write(bytes().fromhex(msg))
             if log:

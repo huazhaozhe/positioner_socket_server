@@ -28,7 +28,7 @@ class HeartBeat(BaseCase):
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
         send_msg = self.startwith + '0730' + time_str + self.endwith
-        self.send_to_device(transport, send_msg, log=False)
+        self.send_to_device(transport, send_msg)
         return True
 
 
@@ -152,7 +152,7 @@ class FactoryReset(BaseCase):
 
     def act(self, transport, data):
         send_msg = self.startwith + '0115' + self.endwith
-        self.send_to_device(transport, send_msg)
+        self.send_to_device(transport, send_msg, log=True)
         log_str = '协议 %s 恢复出厂' % self.number
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
@@ -312,7 +312,7 @@ class SetUploadIntervalBySms(BaseCase):
 
     def act(self, transport, data):
         send_msg = str(binascii.b2a_hex(data))[2:-1]
-        self.send_to_device(transport, send_msg)
+        self.send_to_device(transport, send_msg, log=True)
         log_str = '协议 %s 短信设置上传间隔' % self.number
         logger.info_log(transport.dev_info['dev_id'] + '.log', log_str,
                         level=logging.INFO)
