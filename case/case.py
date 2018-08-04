@@ -134,6 +134,8 @@ class DeviceStatus(BaseCase):
                 dev_id=data['dev_id']).first()
             if location:
                 location.battery = data['battery']
+                location.last_time = datetime.now()
+                location.connect = 1
                 session.commit()
             else:
                 log_str = '协议 %s location不存在设备 %s' % (

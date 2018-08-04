@@ -94,10 +94,12 @@ class Handler():
 
         elif login_case.test(data) == 1:
             if login_case.act(transport, data):
-                for tcp in self.login_client:
-                    if tcp.dev_info['dev_id'] == transport.dev_info['dev_id']:
-                        tcp.transport.loseConnection()
                 self.login_client.append(transport)
+                for tcp in self.login_client:
+                    if tcp.dev_info['dev_id'] == transport.dev_info['dev_id'] \
+                            and not tcp is transport:
+                        self.login_client.remove(tcp)
+                        tcp.transport.loseConnection()
 
         elif DEBUG and transport not in self.login_client:
             session = DBSession()
@@ -110,11 +112,10 @@ class Handler():
         if transport in self.login_client:
             if self.to_send_enable:
                 if self.to_send_init(transport.dev_info['dev_id']):
-                     self.to_send_device(transport)
+                    self.to_send_device(transport)
             return True
-        else:
-            transport.transport.loseConnection()
-            return False
+        transport.transport.loseConnection()
+        return False
         # transport.transport.abortConnection()
 
     def to_send_init(self, dev_id):
@@ -201,6 +202,7 @@ class Handler():
             session.close()
 
     def logout(self, transport):
+        self.login_client.remove(transport)
         session = DBSession()
         try:
             location = session.query(LocationCard).filter(

@@ -160,6 +160,7 @@ class LoginCase(BaseCase):
                 location = session.query(LocationCard).filter(
                     LocationCard.dev_id == dev.dev_id).first()
                 location.connect = 1
+                location.last_time = datetime.now()
                 session.commit()
             except:
                 session.rollback()
